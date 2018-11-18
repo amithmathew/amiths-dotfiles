@@ -1,0 +1,1029 @@
+#+TITLE: Emacs Configuration
+#+AUTHOR: Amith P. Mathew
+#+EMAIL: me@amithm.ca
+#+OPTIONS: toc:nil num:nil
+#+STARTUP: overview
+#+PROPERTY: header-args :results silent
+
+* Personal Information
+#+BEGIN_SRC emacs-lisp
+  (setq user-full-name "Amith Mathew"
+        user-email-address "me@amithm.ca")
+#+END_SRC
+* Load paths defined by package.el.
+We probably don't need this. An experiment for another day.
+#+BEGIN_SRC emacs-lisp
+(package-initialize)
+(add-to-list 'load-path "~/.emacs.d/lisp/")
+(add-to-list 'exec-path "/Library/Frameworks/Python.framework/Versions/3.6/bin")
+#+END_SRC
+* Auto-install =use-package= if missing.
+=use-package= cannot install itself.
+#+BEGIN_SRC emacs-lisp
+  (unless (package-installed-p 'use-package)
+    (package-refresh-contents)
+    (package-install 'use-package))
+
+  (eval-when-compile
+    (require 'use-package))
+
+  ;(require 'dimnish)
+  ;(require 'bind-key)
+#+END_SRC
+
+* Basic improvements.
+** Turn off the audible beep.
+Disabled. Instead I'm turning off the bell completely in the next section.
+#+BEGIN_SRC emacs-lisp
+;(setq visible-bell t)
+#+END_SRC
+** Disable bell functionality.
+Disable bell completely.
+#+BEGIN_SRC emacs-lisp
+(setq ring-bell-function 'ignore)
+#+END_SRC
+** Scrolling improvements
+
+#+BEGIN_SRC emacs-lisp
+(require 'smooth-scrolling)
+(smooth-scrolling-mode t)
+(setq scroll-conservatively 100)
+(setq hscroll-margin 5) ; Keep these many lines between the cursor and bottom of buffer.
+#+END_SRC
+
+** Point control
+Keep the point at the same position on the screen when scrolling.
+
+#+BEGIN_SRC emacs-lisp
+(setq scroll-preserve-screen-position t)
+#+END_SRC
+
+** Keep backup files in a single location
+
+#+BEGIN_SRC emacs-lisp
+(setq backup-directory-alist '(("" . "~/.emacs.d/emacs-backup")))
+#+END_SRC
+
+** Higher GC threshold
+#+BEGIN_SRC emacs-lisp
+(setq gc-cons-threshold 20000000)
+#+END_SRC
+** Delete Trailing Whitespace every time a buffer is saved.
+#+BEGIN_SRC emacs-lisp
+(add-hook 'before-save-hook 'delete-trailing-whitespace)
+#+END_SRC
+** Single-space after period
+#+BEGIN_SRC emacs-lisp
+(setq sentence-end-double-space nil)
+#+END_SRC
+** Overwrite selected region
+If some text is selected, and you type some text, delete the selected text and start inserting typed text.
+
+#+BEGIN_SRC emacs-lisp
+(delete-selection-mode t)
+#+END_SRC
+** Default to y-or-n-p
+#+BEGIN_SRC emacs-lisp
+  (defalias 'yes-or-no-p 'y-or-n-p)
+#+END_SRC
+** Display Line numbers in fringe.
+#+BEGIN_SRC emacs-lisp
+;(global-display-line-numbers-mode) ;Commenting out as it slows down buffer refresh and doesn't play nicely with some modes.
+#+END_SRC
+** Unicode fun
+*** Handle font sizing when including unicode characters.
+#+BEGIN_SRC emacs-lisp
+(unicode-fonts-setup)
+#+END_SRC
+
+*** "Hail Mary" on making unicode work on windows.
+#+BEGIN_SRC emacs-lisp
+(prefer-coding-system 'utf-8)
+#+END_SRC
+*** More UTF-8 Settings!
+Thank you [[https://github.com/daedreth/UncleDavesEmacs][Uncle Dave]]!
+#+BEGIN_SRC emacs-lisp
+(setq locale-coding-system 'utf-8)
+(set-terminal-coding-system 'utf-8)
+(set-keyboard-coding-system 'utf-8)
+(set-selection-coding-system 'utf-8)
+#+END_SRC
+** Set PATH when on OSX or Linux
+#+BEGIN_SRC emacs-lisp
+  (when (memq window-system '(mac ns x))
+    (exec-path-from-shell-initialize))
+#+END_SRC
+** Use async processes wherever possible
+#+BEGIN_SRC emacs-lisp
+(use-package async
+  :ensure t
+  :init (dired-async-mode 1))
+#+END_SRC
+* Dashboard
+** New startup screen which works with Projectile.
+
+#+BEGIN_SRC emacs-lisp
+  (use-package dashboard
+    :ensure t
+    :config
+      (dashboard-setup-startup-hook)
+      (setq dashboard-startup-banner "~/.emacs.d/aws.png")
+      (setq dashboard-items '((recents  . 10)
+                              (projects . 5)))
+      (setq dashboard-banner-logo-title ""))
+#+END_SRC
+
+** Change some font faces and colors on the Dashboard.
+
+#+BEGIN_SRC emacs-lisp
+;   `(dashboard-heading-face ( (((class color) (min-colors 88)) (:foreground "#61afef" :bold t :height 1.2))))
+;   `(dashboard-banner-logo-title-face ((((class color) (min-colors 88)) (:foreground "#61afef" :bold t :height 1.2))))
+;   `(widget-button ((((class color) (min-colors 88)) (:foreground "#61afef" :bold nil :underline t :height 0.9))))
+#+END_SRC
+
+* ido mode
+** Setup ido mode
+#+BEGIN_SRC emacs-lisp
+;(require 'ido)
+;(ido-mode 1)
+#+END_SRC
+
+** Enable flex matching for ido
+#+BEGIN_SRC emacs-lisp
+;(setq ido-enable-flex-matching t)
+#+END_SRC
+* ivy and counsel mode
+#+BEGIN_SRC emacs-lisp
+(use-package ivy
+  :ensure t)
+
+;(use-package counsel
+;  :ensure t)
+#+END_SRC
+* Company mode
+#+BEGIN_SRC emacs-lisp
+(use-package company
+  :ensure t
+  :defer 2
+  :diminish
+  :config
+  (setq company-idle-delay .1)
+  (setq company-minimum-prefix-length 3)
+  (setq company-show-numbers t)
+  (setq company-tooltip-align-annotations 't))
+#+END_SRC
+
+Set default company backends
+#+BEGIN_SRC emacs-lisp
+(setq company-backends
+      '((company-keywords       ; keywords
+         company-capf
+         company-files          ; files & directory
+         )
+        (company-abbrev company-dabbrev)
+        ))
+#+END_SRC
+
+
+Beautiful icons
+#+BEGIN_SRC emacs-lisp
+(use-package company-box
+  :after company
+  :diminish
+  :hook (company-mode . company-box-mode))
+#+END_SRC
+
+* UI
+** Font settings.
+I like Consolas.
+
+#+BEGIN_SRC emacs-lisp
+
+  (cond
+   ((string-equal system-type "darwin") ; MacOS
+    (setq apm/default-font "Inconsolata")
+    (setq apm/default-font-size 14))
+   ((string-equal system-type "windows-nt") ; Microsoft Windows
+    (setq apm/default-font "Consolas")
+    (setq apm/default-font-size 12)))
+
+    (setq apm/current-font-size apm/default-font-size)
+
+    (setq apm/font-change-increment 1.1)
+
+    (defun apm/font-code ()
+      "Return a string representing the current font."
+      (concat apm/default-font "-" (number-to-string apm/current-font-size)))
+
+    (defun apm/set-font-size ()
+      "Set the font to 'apm/default-font at 'apm/current-font-size'.
+        Set that for the current frame and also make it default for other, future frames."
+      (let ((font-code (apm/font-code)))
+        (add-to-list 'default-frame-alist (cons 'font font-code))
+        (set-frame-font font-code)))
+
+    (defun apm/reset-font-size ()
+      "Change font size back to apm/default-font-size."
+      (interactive)
+      (setq apm/current-font-size apm/default-font-size)
+      (apm/set-font-size))
+
+    (defun apm/increase-font-size ()
+      "Increase current font size by a factor of `apm/font-change-increment'."
+      (interactive)
+      (setq apm/current-font-size
+            (ceiling (* apm/current-font-size apm/font-change-increment)))
+      (apm/set-font-size))
+
+    (defun apm/decrease-font-size ()
+      "Decrease current font size by a factor of `apm/font-change-increment', down to a minimum size of 1."
+      (interactive)
+      (setq apm/current-font-size
+            (max 1
+                 (floor (/ apm/current-font-size apm/font-change-increment))))
+      (apm/set-font-size))
+
+    (define-key global-map (kbd "C-=") 'apm/reset-font-size)
+    (define-key global-map (kbd "C-+") 'apm/increase-font-size)
+    (define-key global-map (kbd "C--") 'apm/decrease-font-size)
+    (apm/reset-font-size)
+#+END_SRC
+
+** Handle unicode characters well.
+Including a unicode character on a line sometimes increases the height of some fonts. This takes care of that.
+
+#+BEGIN_SRC emacs-lis[
+(unicode-fonts-setup)
+#+END_SRC
+
+** Theme
+*** Keep all characters at same font height
+This needs to be run before loading the solarized-dark theme.
+#+BEGIN_SRC emacs-lisp
+;(setq solarized-use-variable-pitch nil)
+;(setq solarized-height-plus-1 1.0)
+;(setq solarized-height-plus-2 1.0)
+;(setq solarized-height-plus-3 1.0)
+;(setq solarized-height-plus-4 1.0)
+;(setq solarized-high-contrast-mode-line t)
+;(setq solarized-scale-org-headlines nil)
+#+END_SRC
+
+** Load Theme
+Solarized Dark is nice.
+
+#+BEGIN_SRC emacs-lisp
+;;(load-theme 'solarized-dark t)
+#+END_SRC
+
+Manoj-dark is also nice.
+#+BEGIN_SRC emacs-lisp
+;;(load-theme 'manoj-dark t)
+#+END_SRC
+
+So is [[https://github.com/purcell/color-theme-sanityinc-tomorrow][sanityinc-tomorrow]]
+#+BEGIN_SRC emacs-lisp
+  (use-package color-theme-sanityinc-tomorrow
+    :config
+    (load-theme 'sanityinc-tomorrow-bright t))
+#+END_SRC
+
+** Adjust Theme settings
+Make additional changes to the color schemes.
+
+#+BEGIN_SRC emacs-lisp
+;;(set-background-color "black")
+#+END_SRC
+** Mode-line Configuration
+*** Smart-Mode-Line package
+#+BEGIN_SRC emacs-lisp
+  (use-package smart-mode-line
+    :ensure t
+    :config
+    (setq sml/no-confirm-load-theme t)
+    (setq sml/name-width 20)
+    (setq sml/mode-width 'full)
+    (setq sml/shorten-directory t)
+    (setq sml/shorten-modes t)
+;    (require-package 'smart-mode-line-powerline-theme)
+    (setq powerline-default-separator-dir '(right . left))
+    (setq powerline-arrow-shape 'curve)
+    (setq sml/theme 'powerline)
+    (sml/setup))
+#+END_SRC
+
+** Remove unnecessary Chrome
+
+#+BEGIN_SRC emacs-lisp
+(if (fboundp 'scroll-bar-mode) (scroll-bar-mode -1))
+(if (fboundp 'tool-bar-mode) (tool-bar-mode -1))
+(if (fboundp 'menu-bar-mode) (menu-bar-mode -1))
+#+END_SRC
+
+** Highlight Current Line
+
+#+BEGIN_SRC emacs-lisp
+(global-hl-line-mode +1)
+#+END_SRC
+
+** Indentation settings - tabs vs. spaces.
+Spaces.
+
+#+BEGIN_SRC emacs-lisp
+(setq-default indent-tabs-mode nil)
+#+END_SRC
+** Turn on Syntax Highlighting whenever possible
+#+BEGIN_SRC emacs-lisp
+(global-font-lock-mode t)
+#+END_SRC
+** Show matching parens
+#+BEGIN_SRC emacs-lisp
+(show-paren-mode t)
+(setq show-paren-delay 0.0)
+#+END_SRC
+
+** Fancy Lambdas
+#+BEGIN_SRC emacs-lisp
+(global-prettify-symbols-mode t)
+#+END_SRC
+** Mac specific colorspace cleanup and anti-aliasing
+#+BEGIN_SRC emacs-lisp
+  (setq ns-use-srgb-colorspace nil) ;Needed to keep powerline arrows clean.
+  (setq mac-allow-anti-aliasing t)
+#+END_SRC
+** major-mode-icons
+Not very nice on windows - the icon is too small.
+#+BEGIN_SRC emacs-lisp
+  ;(use-package mode-icons
+  ;  :ensure t
+  ;  :config
+  ;  (mode-icons-mode t))
+#+END_SRC
+** Line Number and Column Number mode
+#+BEGIN_SRC emacs-lisp
+  (setq line-number-mode t)
+  (setq column-number-mode t)
+#+END_SRC
+** switch-window configuration
+#+BEGIN_SRC emacs-lisp
+(use-package switch-window
+  :ensure t
+  :config
+    (setq switch-window-input-style 'minibuffer)
+    (setq switch-window-increase 4)
+    (setq switch-window-threshold 2)
+    (setq switch-window-shortcut-style 'qwerty)
+    (setq switch-window-qwerty-shortcuts
+        '("a" "s" "d" "f" "j" "k" "l" "i" "o"))
+  :bind
+    ([remap other-window] . switch-window))
+#+END_SRC
+** Beacon when switching buffers
+Highlights the cursor when switching buffers
+#+BEGIN_SRC emacs-lisp
+  (use-package beacon
+    :ensure t
+    :config
+      (beacon-mode 1))
+#+END_SRC
+** Hungry Deletion for whitespace cleanup.
+#+BEGIN_SRC emacs-lisp
+(use-package hungry-delete
+  :ensure t
+  :config
+    (global-hungry-delete-mode))
+#+END_SRC
+* Buffer management
+Always murder current buffer
+#+BEGIN_SRC emacs-lisp
+  (defun kill-current-buffer ()
+    "Kills the current buffer."
+    (interactive)
+    (kill-buffer (current-buffer)))
+  (global-set-key (kbd "C-x k") 'kill-current-buffer)
+#+END_SRC
+
+Turn buffer-list into ibuffer
+#+BEGIN_SRC emacs-lisp
+  (global-set-key (kbd "C-x C-b") 'ibuffer)
+#+END_SRC
+
+* Avy for Search
+#+BEGIN_SRC emacs-lisp
+  (use-package avy
+    :ensure t
+    :bind
+      ("M-s" . avy-goto-char))
+#+END_SRC
+* Programming Environments
+** Global
+Set tab-width to 2.
+#+BEGIN_SRC emacs-lisp
+(setq-default tab-width 2)
+#+END_SRC
+
+Enable linum-mode in all programming modes
+#+BEGIN_SRC emacs-lisp
+;(add-hook 'prog-mode-hook 'linum-mode)
+#+END_SRC
+
+** Python
+Use Python3
+#+BEGIN_SRC emacs-lisp
+  (cond
+   ((string-equal system-type "darwin") ; MacOS
+    ;;(setq python-shell-interpreter "/Library/Frameworks/Python.framework/Versions/3.6/Resources/Python.app/Contents/MacOS/Python")
+    (setq python-shell-interpreter "python3")
+    (setq python-shell-completion-native-enable nil)
+    (setq elpy-rpc-python-command "python3")
+    ))
+#+END_SRC
+
+*** elpy
+
+Enable =elpy=
+#+BEGIN_SRC emacs-lisp
+;(elpy-enable)
+#+END_SRC
+
+Use =flycheck=
+#+BEGIN_SRC emacs-lisp
+;(add-hook 'elpy-mode-hook 'flycheck-mode)
+#+END_SRC
+
+PEP8 on Save.
+#+BEGIN_SRC emacs-lisp
+;(require 'py-autopep8)
+;(add-hook 'elpy-mode-hook 'py-autopep8-enable-on-save)
+#+END_SRC
+
+Use Jedi for autocompletion
+#+BEGIN_SRC emacs-lisp
+;(setq elpy-rpc-backend "jedi")
+#+END_SRC
+*** anaconda
+
+Type =C-M-i= to start a completion.
+
+Enable company-anaconda
+#+BEGIN_SRC emacs-lisp
+(use-package company-anaconda
+  :after (anaconda-mode company)
+  :config (add-to-list 'company-backends 'company-anaconda))
+#+END_SRC
+
+Enable anaconda-mode
+#+BEGIN_SRC emacs-lisp
+(add-hook 'python-mode-hook 'anaconda-mode)
+#+END_SRC
+
+Enable anaconda-eldoc-mode - when point is between the paranthesis of a function call, its parameters are shown in the echo area.
+#+BEGIN_SRC emacs-lisp
+(add-hook 'python-mode-hook 'anaconda-eldoc-mode)
+#+END_SRC
+
+If you need to reset the interpreter when using python in docker, run the following
+#+BEGIN_EXAMPLE emacs-lisp
+(setq python-shell-interpreter "/usr/local/bin/python")
+#+END_EXAMPLE
+
+** CSS
+#+BEGIN_SRC emacs-lisp
+(require 'css-mode)
+(setq css-indent-offset 2)
+#+END_SRC
+** Javascript
+Indent by 2 spaces
+#+BEGIN_SRC emacs-lisp
+(setq js-indent-level 2)
+#+END_SRC
+** Lisps
+Common settings for all Lisps
+#+BEGIN_SRC emacs-lisp
+  (setq lispy-mode-hooks
+        '(clojure-mode-hook
+          emacs-lisp-mode-hook
+          lisp-mode-hook
+          scheme-mode-hook))
+
+  (dolist (hook lispy-mode-hooks)
+    (add-hook hook (lambda()
+                     (setq show-paren-style 'expression)
+                     (rainbow-delimiters-mode))))
+
+(add-hook 'emacs-lisp-mode-hook 'eldoc-mode)
+
+#+END_SRC
+
+* Org-Mode
+** Startup settings
+#+BEGIN_SRC emacs-lisp
+  (setq org-startup-indented t)
+  (setq org-startup-truncated nil)
+  (setq org-startup-folded t)
+
+  (setq org-log-into-drawer t)
+  ;(setq org-ellipsis "⤵")
+  (setq org-ellipsis "↴")
+  (setq org-startup-with-inline-images t)
+
+  (cond
+   ((string-equal system-type "darwin") ; MacOS
+    (progn
+      (setq org-directory "~/Dropbox/org")
+      (setq org-az-directory "~/Documents/org")
+      ))
+   ((string-equal system-type "windows-nt") ; Microsoft Windows
+    (progn
+      (setq org-directory "~/../org")
+      (setq org-az-directory ""))))
+
+                                          ; (setq org-agenda-files (list "~/Dropbox/org/customers"))
+
+  (setq org-default-notes-file (concat (file-name-as-directory org-directory) "refile.org"))
+#+END_SRC
+** Org-Mode Todo and Agenda settings
+A lot of what follows was shamelessly from Aaron Beiber's [[https://blog.aaronbieber.com/2016/01/30/dig-into-org-mode.html][post]].
+*** Setting up org-mode task states and agenda settings.
+Any states after the pipe symbol are considered to be "Completion" states.
+The symbol =!= represents capturing the timestamp of state change.
+The symbol =@= represents capturing a note iwth timestamp.
+The symbol =@/!= for the =WAIT= state means a timestamp+note should be captured when entering the state and a timestamp should be captured when leaving the state as well, irrespective of whether the target state captures a timestamp or not. Its not really applicable here as all my states are capturing timestamps.
+#+BEGIN_SRC emacs-lisp
+  (setq org-todo-keywords
+        '((sequence "TODO(t!)" "WAIT(w@/!)" "|" "DONE(d!)" "CANCELED(c@)")))
+  (setq org-agenda-files (list org-directory))
+#+END_SRC
+
+*** Hotkey to open agenda-list along with some customization
+
+Function to open =org-agenda-list= by itself in the current frame.
+Interestingly, the =interactive= function below is called with a "P" parameter. This means that the function will be passed an argument with a "truthy" or "falsy" value depending on the whether the /prefix/ key was pressed. The prefix key is usually =C-u=.
+Invoking the function after pressing the prefix key (so, =C-u C-c t a=) will open the agenda list like usual, in a frame split.
+
+#+BEGIN_SRC emacs-lisp
+  (defun apm/jump-to-org-agenda (split)
+    "Visit the org agenda, in the the current window or a SPLIT."
+    (interactive "P")
+    (org-agenda-list)
+    (when (not split)
+      (delete-other-windows)))
+
+  (define-key global-map (kbd "C-c t a") 'apm/jump-to-org-agenda)
+#+END_SRC
+
+*** Agenda/Org mode tweaks
+#+BEGIN_SRC emacs-lisp
+(setq org-agenda-text-search-extra-files '(agenda-archives))
+#+END_SRC
+
+Leave a blank line before each entry
+#+BEGIN_SRC emacs-lisp
+  (setq org-blank-before-new-entry (quote ((heading) (plain-lisp-item))))
+#+END_SRC
+
+Force me to mark all child tasks as done before marking parent as DONE.
+#+BEGIN_SRC emacs-lisp
+  (setq org-enforce-todo-dependencies t)
+#+END_SRC
+
+Add an annotation to the task when changing the deadline or scheduled time of a task. Make a note of the previous deadline too.
+
+#+BEGIN_SRC emacs-lisp
+  (setq org-log-redeadline (quote time))
+  (setq org-log-reschedule (quote time))
+#+END_SRC
+
+Create a custom agenda command
+#+BEGIN_SRC emacs-lisp
+  (setq org-agenda-custom-commands
+        '(("c" "Simple agenda view"
+         ((agenda "")
+          (alltodo "")))))
+#+END_SRC
+
+** Org-mode image display
+By default, org-mode does not scale any inline images displayed, which sometimes results in having to maximize the window to really see the image. This is the solution to that problem.
+
+#+BEGIN_SRC emacs-lisp
+  (setq org-image-actual-width (list (/ (display-pixel-width) 3)))
+#+END_SRC
+
+** Org-mode Hot Keys
+
+Org-Agenda
+#+BEGIN_SRC emacs-lisp
+(global-set-key (kbd "C-c a") 'org-agenda)
+#+END_SRC
+
+Define a hotkey to trigger org-capture.
+#+BEGIN_SRC emacs-lisp
+(global-set-key (kbd "C-c c") 'org-capture)
+#+END_SRC
+
+Hotkey to jump to my todo list.
+#+BEGIN_SRC emacs-lisp
+;;  (global-set-key (kbd "C-c t")
+;;                  (lambda () (interactive) (find-file "~/Dropbox/org/todo.org")))
+#+END_SRC
+
+Hotkey to capture-screenshot.
+#+BEGIN_SRC emacs-lisp
+(global-set-key (kbd "<f5>") 'org-attach-screenshot)
+#+END_SRC
+
+** Org-bullets
+Nice bullets for org mode.
+
+#+BEGIN_SRC emacs-lisp
+(require 'org-bullets)
+(add-hook 'org-mode-hook 'org-bullets-mode)
+#+END_SRC
+
+** SRC block settings
+*** Syntax Highlighting
+
+#+BEGIN_SRC emacs-lisp
+(setq org-src-fontify-natively t)
+#+END_SRC
+
+*** Code native tab behaviour inside SRC blocks.
+
+#+BEGIN_SRC emacs-lisp
+(setq org-src-tab-acts-natively t)
+#+END_SRC
+
+*** Edit code blocks in the same window
+
+#+BEGIN_SRC emacs-lisp
+(setq org-src-window-setup 'current-window)
+#+END_SRC
+
+** Org Exports
+*** Org-mode Postamble
+I don't want it.
+#+BEGIN_SRC emacs-lisp
+(setq org-html-postamble nil)
+#+END_SRC
+
+*** Custom export modules
+
+#+BEGIN_SRC emacs-lisp
+  (eval-after-load "org"
+    '(progn
+       (require 'ox-md nil t)
+       (require 'ox-tufte)))
+#+END_SRC
+
+*** Export to ODT
+#+BEGIN_SRC emacs-lisp
+(eval-after-load "org"
+  '(require 'ox-odt nil t))
+#+END_SRC
+
+*** Export to HTML
+Nice stylesheet
+#+BEGIN_SRC emacs-lisp
+  (setq org-html-head-include-default-style nil)
+  (setq org-html-head-include-scripts nil)
+                                          ;(setq org-html-head "<link rel=\"stylesheet\" type=\"text/css\" href=\"http://gongzhitaao.org/orgcss/org.css\"/>")
+  (setq org-html-head "<link rel=\"stylesheet\" href=\"https://cdn.rawgit.com/edwardtufte/tufte-css/gh-pages/tufte.css\" type=\"text/css\" />")
+  (setq org-html-htmlize-output-type 'css)
+#+END_SRC
+*** Export to Bootstrap
+#+BEGIN_SRC emacs-lisp
+(use-package ox-twbs
+  :ensure t)
+#+END_SRC
+** Org Capture Settings
+
+Force UTF-8
+#+BEGIN_SRC emacs-lisp
+(setq org-export-coding-system 'utf-8)
+#+END_SRC
+
+** Org Capture Templates
+Some template placeholders are -
+
+| Placeholder   | Meaning                                                  |
+|---------------+----------------------------------------------------------|
+| %U            | Inactive Timestamp                                       |
+| %^{Name}      | Prompt for something                                     |
+| %a            | Annotation (org-store-link)                              |
+| %i            | Active Region                                            |
+| %?            | Cursor ends up here.                                     |
+| %^G           | Prompt for tags, completion all tags in all agenda files |
+| %^t           | Prompt for a date                                        |
+| %^{Deadline}t | String prompt for date.                                  |
+| %^{prop}p     | Prompt the user for a value of property /prop/           |
+| %T            | Timestamp with date and time.                            |
+
+
+#+BEGIN_QUOTE
+[APM] Struggled tremendously with trying to understand why the code -
+  (concat (file-name-as-directory org-directory) "todo.org")
+wasn't working. Running the todo template kept erroring out with a "Cannot find filename : nil" message.
+
+Finally, [[https://emacs.stackexchange.com/questions/38757/cannot-use-concat-within-org-capture-template][this]] StackOverflow link helped me fix the problem.
+Since the template is quoted, the concat expression was not being evaluated. This can be fixed by using a =backquote= and then a =,= before the part that needs to be evaluated.
+#+END_QUOTE
+
+
+#+BEGIN_SRC emacs-lisp
+  (setq org-capture-templates
+        `(("t"
+           "Todo"
+           entry
+           (file+headline
+            ,(concat (file-name-as-directory org-directory) "todo.org") "Todo List")
+           "* TODO [%^{customer}] %? %^G\n"
+           :prepend t :empty-lines 1 :kill-buffer t)
+
+          ("m"
+           "Meeting Notes"
+           entry
+           (file+datetree
+            ,(concat (file-name-as-directory org-directory) "meeting-notes.org"))
+           "* %^{Customer} %^G\n** Attendees\n%^{Attendees}\n** DateTime\n%T\n** Raw Notes\n%?")
+
+          ("j"
+           "Journal"
+           entry
+           (file+datetree
+            ,(concat (file-name-as-directory org-directory) "journal.org"))
+           "* %^{Content}\n :JOURNAL:\n %^G\n   %?")
+
+          ("q"
+           "Quotes"
+           entry
+           (file
+            ,(concat (file-name-as-directory org-directory) "quotes.org"))
+           "* %^{quote}\n Said %^{Who}\n Inspiration: %^{Inspiration}%?"
+           :empty-lines 1 :kill-buffer t)
+          ))
+#+END_SRC
+** Org Refile Settings
+Shortcut to trigger org-refile is =C-c C-w=
+#+BEGIN_SRC emacs-lisp
+                                          ;  (setq org-refile-targets '(((org-directory-recursively org-directory ".org") :maxlevel q. 3)))
+                                          ;                            ((org-directory-recursively org-az-directory ".org") :maxlevel . 3))
+
+  (setq org-refile-targets '((org-agenda-files :maxlevel . 3)))
+  (setq org-refile-allow-creating-parent-nodes 'confirm)
+  (setq org-refile-use-outline-path 'file)
+  (setq org-outline-path-complete-in-steps nil) ;; Fix for helm issues from https://blog.aaronbieber.com/2017/03/19/organizing-notes-with-refile.html
+#+END_SRC
+** Org-Babel Settings
+*** Require packages
+**** Org-mode instead of Jupyter notebooks!
+#+BEGIN_SRC emacs-lisp
+  (use-package ob-python)
+    ;:config
+    ;(setq ob-ipython-command "ipython3"))
+#+END_SRC
+
+**** Setup ob-async. Add an :async property to SRC blocks to use.
+#+BEGIN_SRC emacs-lisp
+;  (use-package ob-async)
+#+END_SRC
+
+**** Don't ask for confirmation before running SRC blocks.
+#+BEGIN_SRC emacs-lisp
+(setq org-confirm-babel-evaluate nil)
+#+END_SRC
+
+*** org-babel Load Languages
+#+BEGIN_SRC emacs-lisp
+  (org-babel-do-load-languages
+   'org-babel-load-languages
+   '((lisp . t)
+     (restclient . t)
+     (python . t)
+     (ipython . t)
+     (shell . t)))
+#+END_SRC
+
+** Org-attach-screenshot Configuration
+*** Generate a decent filename based on buffer name.
+#+BEGIN_SRC emacs-lisp
+  (defun apm/generate-screenshot-dirname ()
+    (interactive)
+    (cl-assert (buffer-file-name))
+    (concat (file-name-sans-extension (buffer-file-name))
+            "_images"))
+#+END_SRC
+
+Currently working on mac using =screencapture=. Not setup for Windows.
+#+BEGIN_SRC emacs-lisp
+  (cond
+   ((string-equal system-type "darwin") ; MacOS
+  (use-package org-attach-screenshot
+    :init
+    (progn
+      (setq org-attach-screenshot-command-line "screencapture -i %f")
+      (setq org-attach-screenshot-dirfunction 'apm/generate-screenshot-dirname)))))
+#+END_SRC
+** Org-mode custom UI adjustments
+#+BEGIN_SRC emacs-lisp
+(custom-set-faces
+ '(org-document-title ((t (:weight bold :height 1.1)))))
+#+END_SRC
+** Org-ref Settings
+*** Setup Directories
+#+BEGIN_SRC emacs-lisp
+  (setq org-ref-bibliography-notes (concat (file-name-as-directory org-directory) "/ref/notes.org")
+        org-ref-default-bibliography '(concat (file-name-as-directory org-directory) "/ref/master.bib")
+        org-ref-pdf-directory (concat (file-name-as-directory org-directory) "/ref/pdfs/"))
+#+END_SRC
+* Package Manager
+** Melpa and Elpa
+Play nice if no SSL support.
+
+#+BEGIN_SRC emacs-lisp
+(let* ((no-ssl (and (memq system-type '(windows-nt ms-dos))
+                    (not (gnutls-available-p))))
+       (url (concat (if no-ssl "http" "https") "://melpa.org/packages/")))
+  (add-to-list 'package-archives (cons "melpa" url) t))
+(when (< emacs-major-version 24)
+  ;; For important compatibility libraries like cl-lib
+  (add-to-list 'package-archives '("gnu" . "http://elpa.gnu.org/packages/")))
+#+END_SRC
+
+* YAML Mode
+** Setup YAML mode
+
+#+BEGIN_SRC emacs-lisp
+(require 'yaml-mode)
+(add-to-list 'auto-mode-alist '("\\.yaml\\'" . yaml-mode))
+#+END_SRC
+
+* Shell mode
+** Default shell to Bash
+#+BEGIN_SRC emacs-lisp
+(defvar my-term-shell "/bin/bash")
+(defadvice ansi-term (before force-bash)
+  (interactive (list my-term-shell)))
+(ad-activate 'ansi-term)
+#+END_SRC
+** Bash Completion
+#+BEGIN_SRC emacs-lisp
+  (use-package bash-completion
+    :config
+    (bash-completion-setup))
+#+END_SRC
+* elfeed configuration
+** elfeed Helper functions
+#+BEGIN_SRC emacs-lisp
+  (defun apm/elfeed-show-all ()
+    (interactive)
+    (bookmark-maybe-load-default-file)
+    (bookmark-jump "elfeed-all"))
+
+  (defun apm/elfeed-show-emacs ()
+    (interactive)
+    (bookmark-maybe-load-default-file)
+    (bookmark-jump "elfeed-emacs"))
+
+  (defun apm/elfeed-show-aws()
+    (interactive)
+    (bookmark-maybe-load-default-file)
+    (bookmark-jump "elfeed-aws"))
+
+
+  (defun apm/elfeed-load-db-and-open ()
+    "Wrapper to load the elfeed db from disk before opening"
+    (interactive)
+    (elfeed-db-load)
+    (elfeed)
+    (elfeed-search-update--force))
+#+END_SRC
+
+** Configure elfeed
+#+BEGIN_SRC emacs-lisp
+  (use-package elfeed
+    :ensure t
+    :bind (:map elfeed-search-mode-map
+                ("a" . apm/elfeed-show-all)
+                ("b" . apm/elfeed-show-aws)
+                ("e" . apm/elfeed-show-emacs)))
+
+  (use-package elfeed-goodies
+    :config
+    (elfeed-goodies/setup))
+
+#+END_SRC
+
+** Setup elfeed-org
+Use an org file for feed URLs. This section must be run *AFTER* the org-mode section as it uses variables defined there.
+
+#+BEGIN_SRC emacs-lisp
+  (use-package elfeed-org
+    :ensure t
+    :config
+    (elfeed-org)
+    (setq rmh-elfeed-org-files (list (concat (file-name-as-directory org-directory) "elfeed.org"))))
+#+END_SRC
+* NeoTree
+** Use icons with Neo-tree.
+
+#+BEGIN_SRC emacs-lisp
+(setq neo-theme (if (display-graphic-p) 'icons 'arrow))
+#+END_SRC
+* which-key setup
+#+BEGIN_SRC emacs-lisp
+  (use-package which-key
+    :config
+    (which-key-mode))
+#+END_SRC
+* SLIME
+** Path to the Lisp Compiler
+
+#+BEGIN_SRC emacs-lisp
+(if (string-equal system-name "AMITH-SP4")
+    (setq inferior-lisp-program "sbcl.exe")
+  (setq inferior-lisp-program "/usr/local/bin/sbcl")
+  )
+#+END_SRC
+* deft setup
+** Setup deft for NV style note management
+#+BEGIN_SRC emacs-lisp
+  (use-package deft
+    :bind ("<f8>" . deft)
+    :commands (deft)
+    :config
+    (setq deft-directory "~/Dropbox/org")
+    (setq deft-extensions '("txt" "md" "org"))
+    (setq deft-recursive t))
+#+END_SRC
+* Docker Setup
+** Machine specific configuration
+#+BEGIN_SRC emacs-lisp
+  (cond
+   ((string-equal system-type "darwin") ; MacOS
+        (progn
+        (setenv "PATH" (concat (getenv "PATH") ":/usr/local/bin"))
+        (setq exec-path (append exec-path '("/usr/local/bin")))
+        ;; Use "docker-machine env box" command to find out your environment variables
+        ;(setenv "DOCKER_TLS_VERIFY" "1")
+        ;(setenv "DOCKER_HOST" "tcp://10.11.12.13:2376")
+        ;(setenv "DOCKER_CERT_PATH" "/Users/foo/.docker/machine/machines/box")
+        ;(setenv "DOCKER_MACHINE_NAME" "box")
+        )))
+#+END_SRC
+** Dockerfile setup
+
+You can specify image name in the Dockerfile itself by adding a line like the following at the top.
+#+BEGIN_EXAMPLE
+-*- docker-image-name: "your-image-name-here" -*-
+#+END_EXAMPLE
+
+#+BEGIN_SRC emacs-lisp
+(require 'dockerfile-mode)
+(add-to-list 'auto-mode-alist '("Dockerfile\\'" . dockerfile-mode))
+(put 'dockerfile-image-name 'safe-local-variable #'stringp)
+#+END_SRC
+* eshell Settings
+** Add important stuff to path
+#+BEGIN_SRC emacs-lisp
+  (defun eshell-mode-hook-func ()
+    (setq paths-to-add "/Library/Frameworks/Python.framework/Versions/3.6/bin:")
+    (setq eshell-path-env (concat paths-to-add  eshell-path-env))
+    (setenv "PATH" (concat paths-to-add (getenv "PATH")))
+                                          ;(define-key eshell-mode-map (kbd "M-s") 'other-window-or-split))
+    )
+  (add-hook 'eshell-mode-hook 'eshell-mode-hook-func)
+#+END_SRC
+* TRAMP mode
+#+BEGIN_SRC emacs-lisp
+(setq tramp-default-method "ssh")
+#+END_SRC
+* Projectile
+** Enable Projectile globally!
+#+BEGIN_SRC emacs-lisp
+(use-package projectile
+  :ensure t
+  :init
+    (projectile-mode 1))
+#+END_SRC
+** Let Projectile call =make=
+#+BEGIN_SRC emacs-lisp
+(global-set-key (kbd "<f5>") 'projectile-compile-project)
+#+END_SRC
+* Config Management
+** Visiting the configuration file.
+#+BEGIN_SRC emacs-lisp
+(defun config-visit ()
+  (interactive)
+  (find-file "~/.emacs.d/configuration.org"))
+(global-set-key (kbd "C-c e") 'config-visit)
+#+END_SRC
+** Reload config
+#+BEGIN_SRC emacs-lisp
+(defun config-reload ()
+  "Reloads ~/.emacs.d/config.org at runtime"
+  (interactive)
+  (org-babel-load-file (expand-file-name "~/.emacs.d/configuration.org")))
+(global-set-key (kbd "C-c r") 'config-reload)
+#+END_SRC
+* Credits
+** [[https://github.com/hrs/dotfiles/blob/master/emacs/.emacs.d/configuration.org][Harry Schwartz's configuration files]]
