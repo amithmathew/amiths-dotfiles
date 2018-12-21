@@ -154,11 +154,15 @@ Thank you [[https://github.com/daedreth/UncleDavesEmacs][Uncle Dave]]!
 #+END_SRC
 * ivy and counsel mode
 #+BEGIN_SRC emacs-lisp
-(use-package ivy
-  :ensure t)
+  (use-package ivy
+    :ensure t)
 
-;(use-package counsel
-;  :ensure t)
+  (use-package counsel
+    :ensure t
+    :config
+      (global-set-key (kbd "C-s") 'swiper)
+      (global-set-key (kbd "C-x C-f") 'counsel-find-file)
+  )
 #+END_SRC
 * Company mode
 #+BEGIN_SRC emacs-lisp
@@ -175,13 +179,13 @@ Thank you [[https://github.com/daedreth/UncleDavesEmacs][Uncle Dave]]!
 
 Set default company backends
 #+BEGIN_SRC emacs-lisp
-(setq company-backends
-      '((company-keywords       ; keywords
-         company-capf
-         company-files          ; files & directory
-         )
-        (company-abbrev company-dabbrev)
-        ))
+  (setq company-backends
+        '((company-files          ; files & directory
+           company-keywords       ; keywords
+           company-capf
+           )
+          (company-abbrev company-dabbrev)
+          ))
 #+END_SRC
 
 
@@ -486,13 +490,28 @@ If you need to reset the interpreter when using python in docker, run the follow
 #+BEGIN_EXAMPLE emacs-lisp
 (setq python-shell-interpreter "/usr/local/bin/python")
 #+END_EXAMPLE
+** Web
+*** Common
+**** impatient-mode
+Point your browser at http://localhost:8080/imp/ and select the buffer you want to view live.
 
-** CSS
+#+BEGIN_SRC emacs-lisp
+(use-package impatient-mode)
+#+END_SRC
+
+To start impatient mode in a session, do the following -
+#+BEGIN_EXAMPLE emacs-lisp
+M-x httpd-start ; Once per session.
+M-x impatient-mode ; Enable this minor-mode Once per buffer.
+#+END_EXAMPLE
+
+*** CSS
 #+BEGIN_SRC emacs-lisp
 (require 'css-mode)
 (setq css-indent-offset 2)
 #+END_SRC
-** Javascript
+
+*** Javascript
 Indent by 2 spaces
 #+BEGIN_SRC emacs-lisp
 (setq js-indent-level 2)
@@ -514,7 +533,11 @@ Common settings for all Lisps
 (add-hook 'emacs-lisp-mode-hook 'eldoc-mode)
 
 #+END_SRC
-
+* Magit
+** Set global key for git status
+#+BEGIN_SRC emacs-lisp
+(global-set-key (kbd "C-x g") 'magit-status)
+#+END_SRC
 * Org-Mode
 ** Startup settings
 #+BEGIN_SRC emacs-lisp
