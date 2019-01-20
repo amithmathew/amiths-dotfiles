@@ -595,6 +595,19 @@ Invoking the function after pressing the prefix key (so, =C-u C-c t a=) will ope
   (define-key global-map (kbd "C-c t a") 'apm/jump-to-org-agenda)
 #+END_SRC
 
+
+*** Hotkey to open my custom agenda view
+#+BEGIN_SRC emacs-lisp
+  (defun apm/org-show-custom-agenda-view (&optional arg)
+    (interactive "P")
+    (org-agenda arg "c"))
+
+  (define-key global-map (kbd "C-c t c") 'apm/org-show-custom-agenda-view)
+#+END_SRC
+
+
+
+
 *** Agenda/Org mode tweaks
 #+BEGIN_SRC emacs-lisp
 (setq org-agenda-text-search-extra-files '(agenda-archives))
@@ -620,9 +633,12 @@ Add an annotation to the task when changing the deadline or scheduled time of a 
 Create a custom agenda command
 #+BEGIN_SRC emacs-lisp
   (setq org-agenda-custom-commands
-        '(("c" "Simple agenda view"
-         ((agenda "")
-          (alltodo "")))))
+        '(("c" "Simple Agenda View"
+           ((tags "PRIORITY=\"A\""
+                ((org-agenda-skip-function '(org-agenda-skip-entry-if 'todo 'done))
+                 (org-agenda-overriding-header "High-priority unfinished tasks:")))
+            (agenda "")
+            (alltodo "")))))
 #+END_SRC
 
 ** Org-mode image display
@@ -695,7 +711,8 @@ I don't want it.
   (eval-after-load "org"
     '(progn
        (require 'ox-md nil t)
-       (require 'ox-tufte)))
+       ;(require 'ox-tufte)
+       ))
 #+END_SRC
 
 *** Export to ODT
@@ -707,10 +724,11 @@ I don't want it.
 *** Export to HTML
 Nice stylesheet
 #+BEGIN_SRC emacs-lisp
-  (setq org-html-head-include-default-style nil)
+    (setq org-html-head-include-default-style nil)
   (setq org-html-head-include-scripts nil)
                                           ;(setq org-html-head "<link rel=\"stylesheet\" type=\"text/css\" href=\"http://gongzhitaao.org/orgcss/org.css\"/>")
-  (setq org-html-head "<link rel=\"stylesheet\" href=\"https://cdn.rawgit.com/edwardtufte/tufte-css/gh-pages/tufte.css\" type=\"text/css\" />")
+                                          ;(setq org-html-head "<link rel=\"stylesheet\" href=\"https://cdn.rawgit.com/edwardtufte/tufte-css/gh-pages/tufte.css\" type=\"text/css\" />")
+  (setq org-html-head "<link rel=\"stylesheet\" href=\"https://unpkg.com/sakura.css/css/sakura.css\" type=\"text/css\"/>")
   (setq org-html-htmlize-output-type 'css)
 #+END_SRC
 *** Export to Bootstrap
@@ -752,6 +770,7 @@ Since the template is quoted, the concat expression was not being evaluated. Thi
 #+END_QUOTE
 
 
+
 #+BEGIN_SRC emacs-lisp
   (setq org-capture-templates
         `(("t"
@@ -767,7 +786,8 @@ Since the template is quoted, the concat expression was not being evaluated. Thi
            entry
            (file+datetree
             ,(concat (file-name-as-directory org-directory) "meeting-notes.org"))
-           "* %^{Customer} %^G\n** Attendees\n%^{Attendees}\n** DateTime\n%T\n** Raw Notes\n%?")
+           "* %T %^G\n** Attendees\n%^{Attendees}\n** Raw Notes\n%?"
+           :empty-lines 1)
 
           ("j"
            "Journal"
@@ -894,6 +914,16 @@ Play nice if no SSL support.
     :config
     (bash-completion-setup))
 #+END_SRC
+** Global key to pull up shell
+#+BEGIN_SRC emacs-lisp
+(global-set-key [f1] 'shell)
+#+END_SRC
+** eshell Clear functionality
+#+BEGIN_SRC emacs-lisp
+;Clear the eshell buffer.
+(defun eshell/clear ()
+   (let ((eshell-buffer-maximum-lines 0)) (eshell-truncate-buffer)))
+#+END_SRC
 * elfeed configuration
 ** elfeed Helper functions
 #+BEGIN_SRC emacs-lisp
@@ -945,6 +975,34 @@ Use an org file for feed URLs. This section must be run *AFTER* the org-mode sec
     :config
     (elfeed-org)
     (setq rmh-elfeed-org-files (list (concat (file-name-as-directory org-directory) "elfeed.org"))))
+#+END_SRC
+* eyebrowse mode
+Simple minded Window config manager
+
+*Shortcuts*
+Warning: I've rebinded the prefix to avoid conflict with org-mode refile.
+| Key Binding | Function                         |
+|-------------+----------------------------------|
+| C-c C-w <   | Switch to previous window config |
+| C-c C-w >   | Switch to next window config     |
+| C-c C-w '   | Switch to last window config     |
+| C-c C-w "   | Close current window config      |
+| C-c C-w ,   | Rename current window config     |
+| C-c C-w 0   | Switch to window config 0        |
+| ...         |                                  |
+| C-c C-w 9   | Switch to window config 9        |
+|-------------+----------------------------------|
+
+#+BEGIN_SRC emacs-lisp
+  (use-package eyebrowse
+    :ensure t
+    :init
+    (setq eyebrowse-keymap-prefix (kbd "C-`"))
+    :config
+    (eyebrowse-mode t)
+    :custom
+    (eyebrowse-new-workspace t)
+    )
 #+END_SRC
 * NeoTree
 ** Use icons with Neo-tree.
