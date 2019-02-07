@@ -533,6 +533,23 @@ Common settings for all Lisps
 (add-hook 'emacs-lisp-mode-hook 'eldoc-mode)
 
 #+END_SRC
+** JSON
+*** Collapse large json objects to single line.
+This is useful when working with the AWS CLI.
+From [[https://stackoverflow.com/questions/39861580/emacs-program-to-collapse-json-to-single-line][this]] SO link.
+#+BEGIN_SRC emacs-lisp
+(defun apm/json-to-single-line (beg end)
+  "Collapse prettified json in region between BEG and END to a single line"
+  (interactive "r")
+  (if (use-region-p)
+      (save-excursion
+        (save-restriction
+          (narrow-to-region beg end)
+          (goto-char (point-min))
+          (while (re-search-forward "\\s-+\\|\n" nil t)
+            (replace-match " "))))
+    (print "This function operates on a region")))
+#+END_SRC
 * Magit
 ** Set global key for git status
 #+BEGIN_SRC emacs-lisp
@@ -1081,10 +1098,11 @@ You can specify image name in the Dockerfile itself by adding a line like the fo
 * Projectile
 ** Enable Projectile globally!
 #+BEGIN_SRC emacs-lisp
-(use-package projectile
-  :ensure t
-  :init
-    (projectile-mode 1))
+  (use-package projectile
+    :ensure t
+    :init
+    (projectile-mode 1)
+    :diminish pj)
 #+END_SRC
 ** Let Projectile call =make=
 #+BEGIN_SRC emacs-lisp
