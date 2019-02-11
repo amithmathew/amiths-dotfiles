@@ -10,14 +10,16 @@
   (setq user-full-name "Amith Mathew"
         user-email-address "me@amithm.ca")
 #+END_SRC
-* Load paths defined by package.el.
+* Basic Requirements
+This includes package management and other sanity preserving settings.
+** Load paths defined by package.el.
 We probably don't need this. An experiment for another day.
 #+BEGIN_SRC emacs-lisp
 (package-initialize)
 (add-to-list 'load-path "~/.emacs.d/lisp/")
 (add-to-list 'exec-path "/Library/Frameworks/Python.framework/Versions/3.6/bin")
 #+END_SRC
-* Auto-install =use-package= if missing.
+** Auto-install =use-package= if missing.
 =use-package= cannot install itself.
 #+BEGIN_SRC emacs-lisp
   (unless (package-installed-p 'use-package)
@@ -31,18 +33,18 @@ We probably don't need this. An experiment for another day.
   ;(require 'bind-key)
 #+END_SRC
 
-* Basic improvements.
-** Turn off the audible beep.
+** Basic improvements.
+*** Turn off the audible beep.
 Disabled. Instead I'm turning off the bell completely in the next section.
 #+BEGIN_SRC emacs-lisp
 ;(setq visible-bell t)
 #+END_SRC
-** Disable bell functionality.
+*** Disable bell functionality.
 Disable bell completely.
 #+BEGIN_SRC emacs-lisp
 (setq ring-bell-function 'ignore)
 #+END_SRC
-** Scrolling improvements
+*** Scrolling improvements
 
 #+BEGIN_SRC emacs-lisp
 (require 'smooth-scrolling)
@@ -51,56 +53,56 @@ Disable bell completely.
 (setq hscroll-margin 5) ; Keep these many lines between the cursor and bottom of buffer.
 #+END_SRC
 
-** Point control
+*** Point control
 Keep the point at the same position on the screen when scrolling.
 
 #+BEGIN_SRC emacs-lisp
 (setq scroll-preserve-screen-position t)
 #+END_SRC
 
-** Keep backup files in a single location
+*** Keep backup files in a single location
 
 #+BEGIN_SRC emacs-lisp
 (setq backup-directory-alist '(("" . "~/.emacs.d/emacs-backup")))
 #+END_SRC
 
-** Higher GC threshold
+*** Higher GC threshold
 #+BEGIN_SRC emacs-lisp
 (setq gc-cons-threshold 20000000)
 #+END_SRC
-** Delete Trailing Whitespace every time a buffer is saved.
+*** Delete Trailing Whitespace every time a buffer is saved.
 #+BEGIN_SRC emacs-lisp
 (add-hook 'before-save-hook 'delete-trailing-whitespace)
 #+END_SRC
-** Single-space after period
+*** Single-space after period
 #+BEGIN_SRC emacs-lisp
 (setq sentence-end-double-space nil)
 #+END_SRC
-** Overwrite selected region
+*** Overwrite selected region
 If some text is selected, and you type some text, delete the selected text and start inserting typed text.
 
 #+BEGIN_SRC emacs-lisp
 (delete-selection-mode t)
 #+END_SRC
-** Default to y-or-n-p
+*** Default to y-or-n-p
 #+BEGIN_SRC emacs-lisp
   (defalias 'yes-or-no-p 'y-or-n-p)
 #+END_SRC
-** Display Line numbers in fringe.
+*** Display Line numbers in fringe.
 #+BEGIN_SRC emacs-lisp
 ;(global-display-line-numbers-mode) ;Commenting out as it slows down buffer refresh and doesn't play nicely with some modes.
 #+END_SRC
-** Unicode fun
-*** Handle font sizing when including unicode characters.
+*** Unicode fun
+**** Handle font sizing when including unicode characters.
 #+BEGIN_SRC emacs-lisp
 (unicode-fonts-setup)
 #+END_SRC
 
-*** "Hail Mary" on making unicode work on windows.
+**** "Hail Mary" on making unicode work on windows.
 #+BEGIN_SRC emacs-lisp
 (prefer-coding-system 'utf-8)
 #+END_SRC
-*** More UTF-8 Settings!
+**** More UTF-8 Settings!
 Thank you [[https://github.com/daedreth/UncleDavesEmacs][Uncle Dave]]!
 #+BEGIN_SRC emacs-lisp
 (setq locale-coding-system 'utf-8)
@@ -108,97 +110,49 @@ Thank you [[https://github.com/daedreth/UncleDavesEmacs][Uncle Dave]]!
 (set-keyboard-coding-system 'utf-8)
 (set-selection-coding-system 'utf-8)
 #+END_SRC
-** Set PATH when on OSX or Linux
+*** Set PATH when on OSX or Linux
 #+BEGIN_SRC emacs-lisp
   (when (memq window-system '(mac ns x))
     (exec-path-from-shell-initialize))
 #+END_SRC
-** Use async processes wherever possible
+*** Use async processes wherever possible
 #+BEGIN_SRC emacs-lisp
 (use-package async
   :ensure t
   :init (dired-async-mode 1))
 #+END_SRC
-* Dashboard
-** New startup screen which works with Projectile.
+** Package Manager
+*** Melpa and Elpa
+Play nice if no SSL support.
 
 #+BEGIN_SRC emacs-lisp
-  (use-package dashboard
-    :ensure t
-    :config
-      (dashboard-setup-startup-hook)
-      (setq dashboard-startup-banner "~/.emacs.d/aws.png")
-      (setq dashboard-items '((recents  . 10)
-                              (projects . 5)))
-      (setq dashboard-banner-logo-title ""))
+(let* ((no-ssl (and (memq system-type '(windows-nt ms-dos))
+                    (not (gnutls-available-p))))
+       (url (concat (if no-ssl "http" "https") "://melpa.org/packages/")))
+  (add-to-list 'package-archives (cons "melpa" url) t))
+(when (< emacs-major-version 24)
+  ;; For important compatibility libraries like cl-lib
+  (add-to-list 'package-archives '("gnu" . "http://elpa.gnu.org/packages/")))
 #+END_SRC
 
-** Change some font faces and colors on the Dashboard.
-
+** Buffer management
+Always murder current buffer
 #+BEGIN_SRC emacs-lisp
-;   `(dashboard-heading-face ( (((class color) (min-colors 88)) (:foreground "#61afef" :bold t :height 1.2))))
-;   `(dashboard-banner-logo-title-face ((((class color) (min-colors 88)) (:foreground "#61afef" :bold t :height 1.2))))
-;   `(widget-button ((((class color) (min-colors 88)) (:foreground "#61afef" :bold nil :underline t :height 0.9))))
+  (defun kill-current-buffer ()
+    "Kills the current buffer."
+    (interactive)
+    (kill-buffer (current-buffer)))
+  (global-set-key (kbd "C-x k") 'kill-current-buffer)
 #+END_SRC
 
-* ido mode
-** Setup ido mode
+Turn buffer-list into ibuffer
 #+BEGIN_SRC emacs-lisp
-;(require 'ido)
-;(ido-mode 1)
+  (global-set-key (kbd "C-x C-b") 'ibuffer)
 #+END_SRC
 
-** Enable flex matching for ido
-#+BEGIN_SRC emacs-lisp
-;(setq ido-enable-flex-matching t)
-#+END_SRC
-* ivy and counsel mode
-#+BEGIN_SRC emacs-lisp
-  (use-package ivy
-    :ensure t)
-
-  (use-package counsel
-    :ensure t
-    :config
-      (global-set-key (kbd "C-s") 'swiper)
-      (global-set-key (kbd "C-x C-f") 'counsel-find-file)
-  )
-#+END_SRC
-* Company mode
-#+BEGIN_SRC emacs-lisp
-(use-package company
-  :ensure t
-  :defer 2
-  :diminish
-  :config
-  (setq company-idle-delay .1)
-  (setq company-minimum-prefix-length 3)
-  (setq company-show-numbers t)
-  (setq company-tooltip-align-annotations 't))
-#+END_SRC
-
-Set default company backends
-#+BEGIN_SRC emacs-lisp
-  (setq company-backends
-        '((company-files          ; files & directory
-           company-keywords       ; keywords
-           company-capf
-           )
-          (company-abbrev company-dabbrev)
-          ))
-#+END_SRC
-
-
-Beautiful icons
-#+BEGIN_SRC emacs-lisp
-(use-package company-box
-  :after company
-  :diminish
-  :hook (company-mode . company-box-mode))
-#+END_SRC
-
-* UI
-** Font settings.
+* User Interface and Helpers
+** UI
+*** Font settings.
 I like Consolas.
 
 #+BEGIN_SRC emacs-lisp
@@ -253,15 +207,15 @@ I like Consolas.
     (apm/reset-font-size)
 #+END_SRC
 
-** Handle unicode characters well.
+*** Handle unicode characters well.
 Including a unicode character on a line sometimes increases the height of some fonts. This takes care of that.
 
 #+BEGIN_SRC emacs-lis[
 (unicode-fonts-setup)
 #+END_SRC
 
-** Theme
-*** Keep all characters at same font height
+*** Theme
+**** Keep all characters at same font height
 This needs to be run before loading the solarized-dark theme.
 #+BEGIN_SRC emacs-lisp
 ;(setq solarized-use-variable-pitch nil)
@@ -273,7 +227,7 @@ This needs to be run before loading the solarized-dark theme.
 ;(setq solarized-scale-org-headlines nil)
 #+END_SRC
 
-** Load Theme
+*** Load Theme
 Solarized Dark is nice.
 
 #+BEGIN_SRC emacs-lisp
@@ -292,14 +246,14 @@ So is [[https://github.com/purcell/color-theme-sanityinc-tomorrow][sanityinc-tom
     (load-theme 'sanityinc-tomorrow-bright t))
 #+END_SRC
 
-** Adjust Theme settings
+*** Adjust Theme settings
 Make additional changes to the color schemes.
 
 #+BEGIN_SRC emacs-lisp
 ;;(set-background-color "black")
 #+END_SRC
-** Mode-line Configuration
-*** Smart-Mode-Line package
+*** Mode-line Configuration
+**** Smart-Mode-Line package
 #+BEGIN_SRC emacs-lisp
   (use-package smart-mode-line
     :ensure t
@@ -316,7 +270,7 @@ Make additional changes to the color schemes.
     (sml/setup))
 #+END_SRC
 
-** Remove unnecessary Chrome
+*** Remove unnecessary Chrome
 
 #+BEGIN_SRC emacs-lisp
 (if (fboundp 'scroll-bar-mode) (scroll-bar-mode -1))
@@ -324,38 +278,38 @@ Make additional changes to the color schemes.
 (if (fboundp 'menu-bar-mode) (menu-bar-mode -1))
 #+END_SRC
 
-** Highlight Current Line
+*** Highlight Current Line
 
 #+BEGIN_SRC emacs-lisp
 (global-hl-line-mode +1)
 #+END_SRC
 
-** Indentation settings - tabs vs. spaces.
+*** Indentation settings - tabs vs. spaces.
 Spaces.
 
 #+BEGIN_SRC emacs-lisp
 (setq-default indent-tabs-mode nil)
 #+END_SRC
-** Turn on Syntax Highlighting whenever possible
+*** Turn on Syntax Highlighting whenever possible
 #+BEGIN_SRC emacs-lisp
 (global-font-lock-mode t)
 #+END_SRC
-** Show matching parens
+*** Show matching parens
 #+BEGIN_SRC emacs-lisp
 (show-paren-mode t)
 (setq show-paren-delay 0.0)
 #+END_SRC
 
-** Fancy Lambdas
+*** Fancy Lambdas
 #+BEGIN_SRC emacs-lisp
 (global-prettify-symbols-mode t)
 #+END_SRC
-** Mac specific colorspace cleanup and anti-aliasing
+*** Mac specific colorspace cleanup and anti-aliasing
 #+BEGIN_SRC emacs-lisp
   (setq ns-use-srgb-colorspace nil) ;Needed to keep powerline arrows clean.
   (setq mac-allow-anti-aliasing t)
 #+END_SRC
-** major-mode-icons
+*** major-mode-icons
 Not very nice on windows - the icon is too small.
 #+BEGIN_SRC emacs-lisp
   ;(use-package mode-icons
@@ -363,12 +317,12 @@ Not very nice on windows - the icon is too small.
   ;  :config
   ;  (mode-icons-mode t))
 #+END_SRC
-** Line Number and Column Number mode
+*** Line Number and Column Number mode
 #+BEGIN_SRC emacs-lisp
   (setq line-number-mode t)
   (setq column-number-mode t)
 #+END_SRC
-** switch-window configuration
+*** switch-window configuration
 #+BEGIN_SRC emacs-lisp
 (use-package switch-window
   :ensure t
@@ -382,7 +336,7 @@ Not very nice on windows - the icon is too small.
   :bind
     ([remap other-window] . switch-window))
 #+END_SRC
-** Beacon when switching buffers
+*** Beacon when switching buffers
 Highlights the cursor when switching buffers
 #+BEGIN_SRC emacs-lisp
   (use-package beacon
@@ -390,170 +344,138 @@ Highlights the cursor when switching buffers
     :config
       (beacon-mode 1))
 #+END_SRC
-** Hungry Deletion for whitespace cleanup.
+*** Hungry Deletion for whitespace cleanup.
 #+BEGIN_SRC emacs-lisp
 (use-package hungry-delete
   :ensure t
   :config
     (global-hungry-delete-mode))
 #+END_SRC
-* Buffer management
-Always murder current buffer
+** Dashboard
+*** New startup screen which works with Projectile.
+
 #+BEGIN_SRC emacs-lisp
-  (defun kill-current-buffer ()
-    "Kills the current buffer."
-    (interactive)
-    (kill-buffer (current-buffer)))
-  (global-set-key (kbd "C-x k") 'kill-current-buffer)
+  (use-package dashboard
+    :ensure t
+    :config
+      (dashboard-setup-startup-hook)
+      (setq dashboard-startup-banner "~/.emacs.d/aws.png")
+      (setq dashboard-items '((recents  . 10)
+                              (projects . 5)))
+      (setq dashboard-banner-logo-title ""))
 #+END_SRC
 
-Turn buffer-list into ibuffer
+*** Change some font faces and colors on the Dashboard.
+
 #+BEGIN_SRC emacs-lisp
-  (global-set-key (kbd "C-x C-b") 'ibuffer)
+;   `(dashboard-heading-face ( (((class color) (min-colors 88)) (:foreground "#61afef" :bold t :height 1.2))))
+;   `(dashboard-banner-logo-title-face ((((class color) (min-colors 88)) (:foreground "#61afef" :bold t :height 1.2))))
+;   `(widget-button ((((class color) (min-colors 88)) (:foreground "#61afef" :bold nil :underline t :height 0.9))))
 #+END_SRC
 
-* Avy for Search
+** NeoTree
+*** Use icons with Neo-tree.
+
+#+BEGIN_SRC emacs-lisp
+(setq neo-theme (if (display-graphic-p) 'icons 'arrow))
+#+END_SRC
+** eyebrowse mode
+Simple minded Window config manager
+
+*Shortcuts*
+Warning: I've rebinded the prefix to avoid conflict with org-mode refile.
+| Key Binding | Function                         |
+|-------------+----------------------------------|
+| C-c C-w <   | Switch to previous window config |
+| C-c C-w >   | Switch to next window config     |
+| C-c C-w '   | Switch to last window config     |
+| C-c C-w "   | Close current window config      |
+| C-c C-w ,   | Rename current window config     |
+| C-c C-w 0   | Switch to window config 0        |
+| ...         |                                  |
+| C-c C-w 9   | Switch to window config 9        |
+|-------------+----------------------------------|
+
+#+BEGIN_SRC emacs-lisp
+  (use-package eyebrowse
+    :ensure t
+    :init
+    (setq eyebrowse-keymap-prefix (kbd "C-`"))
+    :config
+    (eyebrowse-mode t)
+    :custom
+    (eyebrowse-new-workspace t)
+    )
+#+END_SRC
+** which-key setup
+#+BEGIN_SRC emacs-lisp
+  (use-package which-key
+    :config
+    (which-key-mode))
+#+END_SRC
+* Search and Auto-complete
+** ido mode
+*** Setup ido mode
+#+BEGIN_SRC emacs-lisp
+;(require 'ido)
+;(ido-mode 1)
+#+END_SRC
+
+*** Enable flex matching for ido
+#+BEGIN_SRC emacs-lisp
+;(setq ido-enable-flex-matching t)
+#+END_SRC
+** ivy and counsel mode
+#+BEGIN_SRC emacs-lisp
+  (use-package ivy
+    :ensure t)
+
+  (use-package counsel
+    :ensure t
+    :config
+      (global-set-key (kbd "C-s") 'swiper)
+      (global-set-key (kbd "C-x C-f") 'counsel-find-file)
+  )
+#+END_SRC
+** Company mode
+#+BEGIN_SRC emacs-lisp
+(use-package company
+  :ensure t
+  :defer 2
+  :diminish
+  :config
+  (setq company-idle-delay .1)
+  (setq company-minimum-prefix-length 3)
+  (setq company-show-numbers t)
+  (setq company-tooltip-align-annotations 't))
+#+END_SRC
+
+Set default company backends
+#+BEGIN_SRC emacs-lisp
+  (setq company-backends
+        '((company-files          ; files & directory
+           company-keywords       ; keywords
+           company-capf
+           )
+          (company-abbrev company-dabbrev)
+          ))
+#+END_SRC
+
+
+Beautiful icons
+#+BEGIN_SRC emacs-lisp
+(use-package company-box
+  :after company
+  :diminish
+  :hook (company-mode . company-box-mode))
+#+END_SRC
+
+** Avy for Search
 #+BEGIN_SRC emacs-lisp
   (use-package avy
     :ensure t
     :bind
       ("M-s" . avy-goto-char))
-#+END_SRC
-* Programming Environments
-** Global
-Set tab-width to 2.
-#+BEGIN_SRC emacs-lisp
-(setq-default tab-width 2)
-#+END_SRC
-
-Enable linum-mode in all programming modes
-#+BEGIN_SRC emacs-lisp
-;(add-hook 'prog-mode-hook 'linum-mode)
-#+END_SRC
-
-** Python
-Use Python3
-#+BEGIN_SRC emacs-lisp
-  (cond
-   ((string-equal system-type "darwin") ; MacOS
-    ;;(setq python-shell-interpreter "/Library/Frameworks/Python.framework/Versions/3.6/Resources/Python.app/Contents/MacOS/Python")
-    (setq python-shell-interpreter "python3")
-    (setq python-shell-completion-native-enable nil)
-    (setq elpy-rpc-python-command "python3")
-    ))
-#+END_SRC
-
-*** elpy
-
-Enable =elpy=
-#+BEGIN_SRC emacs-lisp
-;(elpy-enable)
-#+END_SRC
-
-Use =flycheck=
-#+BEGIN_SRC emacs-lisp
-;(add-hook 'elpy-mode-hook 'flycheck-mode)
-#+END_SRC
-
-PEP8 on Save.
-#+BEGIN_SRC emacs-lisp
-;(require 'py-autopep8)
-;(add-hook 'elpy-mode-hook 'py-autopep8-enable-on-save)
-#+END_SRC
-
-Use Jedi for autocompletion
-#+BEGIN_SRC emacs-lisp
-;(setq elpy-rpc-backend "jedi")
-#+END_SRC
-*** anaconda
-
-Type =C-M-i= to start a completion.
-
-Enable company-anaconda
-#+BEGIN_SRC emacs-lisp
-(use-package company-anaconda
-  :after (anaconda-mode company)
-  :config (add-to-list 'company-backends 'company-anaconda))
-#+END_SRC
-
-Enable anaconda-mode
-#+BEGIN_SRC emacs-lisp
-(add-hook 'python-mode-hook 'anaconda-mode)
-#+END_SRC
-
-Enable anaconda-eldoc-mode - when point is between the paranthesis of a function call, its parameters are shown in the echo area.
-#+BEGIN_SRC emacs-lisp
-(add-hook 'python-mode-hook 'anaconda-eldoc-mode)
-#+END_SRC
-
-If you need to reset the interpreter when using python in docker, run the following
-#+BEGIN_EXAMPLE emacs-lisp
-(setq python-shell-interpreter "/usr/local/bin/python")
-#+END_EXAMPLE
-** Web
-*** Common
-**** impatient-mode
-Point your browser at http://localhost:8080/imp/ and select the buffer you want to view live.
-
-#+BEGIN_SRC emacs-lisp
-(use-package impatient-mode)
-#+END_SRC
-
-To start impatient mode in a session, do the following -
-#+BEGIN_EXAMPLE emacs-lisp
-M-x httpd-start ; Once per session.
-M-x impatient-mode ; Enable this minor-mode Once per buffer.
-#+END_EXAMPLE
-
-*** CSS
-#+BEGIN_SRC emacs-lisp
-(require 'css-mode)
-(setq css-indent-offset 2)
-#+END_SRC
-
-*** Javascript
-Indent by 2 spaces
-#+BEGIN_SRC emacs-lisp
-(setq js-indent-level 2)
-#+END_SRC
-** Lisps
-Common settings for all Lisps
-#+BEGIN_SRC emacs-lisp
-  (setq lispy-mode-hooks
-        '(clojure-mode-hook
-          emacs-lisp-mode-hook
-          lisp-mode-hook
-          scheme-mode-hook))
-
-  (dolist (hook lispy-mode-hooks)
-    (add-hook hook (lambda()
-                     (setq show-paren-style 'expression)
-                     (rainbow-delimiters-mode))))
-
-(add-hook 'emacs-lisp-mode-hook 'eldoc-mode)
-
-#+END_SRC
-** JSON
-*** Collapse large json objects to single line.
-This is useful when working with the AWS CLI.
-From [[https://stackoverflow.com/questions/39861580/emacs-program-to-collapse-json-to-single-line][this]] SO link.
-#+BEGIN_SRC emacs-lisp
-(defun apm/json-to-single-line (beg end)
-  "Collapse prettified json in region between BEG and END to a single line"
-  (interactive "r")
-  (if (use-region-p)
-      (save-excursion
-        (save-restriction
-          (narrow-to-region beg end)
-          (goto-char (point-min))
-          (while (re-search-forward "\\s-+\\|\n" nil t)
-            (replace-match " "))))
-    (print "This function operates on a region")))
-#+END_SRC
-* Magit
-** Set global key for git status
-#+BEGIN_SRC emacs-lisp
-(global-set-key (kbd "C-x g") 'magit-status)
 #+END_SRC
 * Org-Mode
 ** Startup settings
@@ -895,154 +817,7 @@ Currently working on mac using =screencapture=. Not setup for Windows.
         org-ref-default-bibliography '(concat (file-name-as-directory org-directory) "/ref/master.bib")
         org-ref-pdf-directory (concat (file-name-as-directory org-directory) "/ref/pdfs/"))
 #+END_SRC
-* Package Manager
-** Melpa and Elpa
-Play nice if no SSL support.
-
-#+BEGIN_SRC emacs-lisp
-(let* ((no-ssl (and (memq system-type '(windows-nt ms-dos))
-                    (not (gnutls-available-p))))
-       (url (concat (if no-ssl "http" "https") "://melpa.org/packages/")))
-  (add-to-list 'package-archives (cons "melpa" url) t))
-(when (< emacs-major-version 24)
-  ;; For important compatibility libraries like cl-lib
-  (add-to-list 'package-archives '("gnu" . "http://elpa.gnu.org/packages/")))
-#+END_SRC
-
-* YAML Mode
-** Setup YAML mode
-
-#+BEGIN_SRC emacs-lisp
-(require 'yaml-mode)
-(add-to-list 'auto-mode-alist '("\\.yaml\\'" . yaml-mode))
-#+END_SRC
-
-* Shell mode
-** Default shell to Bash
-#+BEGIN_SRC emacs-lisp
-(defvar my-term-shell "/bin/bash")
-(defadvice ansi-term (before force-bash)
-  (interactive (list my-term-shell)))
-(ad-activate 'ansi-term)
-#+END_SRC
-** Bash Completion
-#+BEGIN_SRC emacs-lisp
-  (use-package bash-completion
-    :config
-    (bash-completion-setup))
-#+END_SRC
-** Global key to pull up shell
-#+BEGIN_SRC emacs-lisp
-(global-set-key [f1] 'shell)
-#+END_SRC
-** eshell Clear functionality
-#+BEGIN_SRC emacs-lisp
-;Clear the eshell buffer.
-(defun eshell/clear ()
-   (let ((eshell-buffer-maximum-lines 0)) (eshell-truncate-buffer)))
-#+END_SRC
-* elfeed configuration
-** elfeed Helper functions
-#+BEGIN_SRC emacs-lisp
-  (defun apm/elfeed-show-all ()
-    (interactive)
-    (bookmark-maybe-load-default-file)
-    (bookmark-jump "elfeed-all"))
-
-  (defun apm/elfeed-show-emacs ()
-    (interactive)
-    (bookmark-maybe-load-default-file)
-    (bookmark-jump "elfeed-emacs"))
-
-  (defun apm/elfeed-show-aws()
-    (interactive)
-    (bookmark-maybe-load-default-file)
-    (bookmark-jump "elfeed-aws"))
-
-
-  (defun apm/elfeed-load-db-and-open ()
-    "Wrapper to load the elfeed db from disk before opening"
-    (interactive)
-    (elfeed-db-load)
-    (elfeed)
-    (elfeed-search-update--force))
-#+END_SRC
-
-** Configure elfeed
-#+BEGIN_SRC emacs-lisp
-  (use-package elfeed
-    :ensure t
-    :bind (:map elfeed-search-mode-map
-                ("a" . apm/elfeed-show-all)
-                ("b" . apm/elfeed-show-aws)
-                ("e" . apm/elfeed-show-emacs)))
-
-  (use-package elfeed-goodies
-    :config
-    (elfeed-goodies/setup))
-
-#+END_SRC
-
-** Setup elfeed-org
-Use an org file for feed URLs. This section must be run *AFTER* the org-mode section as it uses variables defined there.
-
-#+BEGIN_SRC emacs-lisp
-  (use-package elfeed-org
-    :ensure t
-    :config
-    (elfeed-org)
-    (setq rmh-elfeed-org-files (list (concat (file-name-as-directory org-directory) "elfeed.org"))))
-#+END_SRC
-* eyebrowse mode
-Simple minded Window config manager
-
-*Shortcuts*
-Warning: I've rebinded the prefix to avoid conflict with org-mode refile.
-| Key Binding | Function                         |
-|-------------+----------------------------------|
-| C-c C-w <   | Switch to previous window config |
-| C-c C-w >   | Switch to next window config     |
-| C-c C-w '   | Switch to last window config     |
-| C-c C-w "   | Close current window config      |
-| C-c C-w ,   | Rename current window config     |
-| C-c C-w 0   | Switch to window config 0        |
-| ...         |                                  |
-| C-c C-w 9   | Switch to window config 9        |
-|-------------+----------------------------------|
-
-#+BEGIN_SRC emacs-lisp
-  (use-package eyebrowse
-    :ensure t
-    :init
-    (setq eyebrowse-keymap-prefix (kbd "C-`"))
-    :config
-    (eyebrowse-mode t)
-    :custom
-    (eyebrowse-new-workspace t)
-    )
-#+END_SRC
-* NeoTree
-** Use icons with Neo-tree.
-
-#+BEGIN_SRC emacs-lisp
-(setq neo-theme (if (display-graphic-p) 'icons 'arrow))
-#+END_SRC
-* which-key setup
-#+BEGIN_SRC emacs-lisp
-  (use-package which-key
-    :config
-    (which-key-mode))
-#+END_SRC
-* SLIME
-** Path to the Lisp Compiler
-
-#+BEGIN_SRC emacs-lisp
-(if (string-equal system-name "AMITH-SP4")
-    (setq inferior-lisp-program "sbcl.exe")
-  (setq inferior-lisp-program "/usr/local/bin/sbcl")
-  )
-#+END_SRC
-* deft setup
+* Deft setup
 ** Setup deft for NV style note management
 #+BEGIN_SRC emacs-lisp
   (use-package deft
@@ -1052,6 +827,198 @@ Warning: I've rebinded the prefix to avoid conflict with org-mode refile.
     (setq deft-directory "~/Dropbox/org")
     (setq deft-extensions '("txt" "md" "org"))
     (setq deft-recursive t))
+#+END_SRC
+* Magit
+** Set global key for git status
+#+BEGIN_SRC emacs-lisp
+(global-set-key (kbd "C-x g") 'magit-status)
+#+END_SRC
+* Programming and CLI
+** Global
+Set tab-width to 2.
+#+BEGIN_SRC emacs-lisp
+(setq-default tab-width 2)
+#+END_SRC
+
+Enable linum-mode in all programming modes
+#+BEGIN_SRC emacs-lisp
+;(add-hook 'prog-mode-hook 'linum-mode)
+#+END_SRC
+
+** Python
+Use Python3
+#+BEGIN_SRC emacs-lisp
+  (cond
+   ((string-equal system-type "darwin") ; MacOS
+    ;;(setq python-shell-interpreter "/Library/Frameworks/Python.framework/Versions/3.6/Resources/Python.app/Contents/MacOS/Python")
+    (setq python-shell-interpreter "python3")
+    (setq python-shell-completion-native-enable nil)
+    (setq elpy-rpc-python-command "python3")
+    ))
+#+END_SRC
+
+*** elpy
+
+Enable =elpy=
+#+BEGIN_SRC emacs-lisp
+;(elpy-enable)
+#+END_SRC
+
+Use =flycheck=
+#+BEGIN_SRC emacs-lisp
+;(add-hook 'elpy-mode-hook 'flycheck-mode)
+#+END_SRC
+
+PEP8 on Save.
+#+BEGIN_SRC emacs-lisp
+;(require 'py-autopep8)
+;(add-hook 'elpy-mode-hook 'py-autopep8-enable-on-save)
+#+END_SRC
+
+Use Jedi for autocompletion
+#+BEGIN_SRC emacs-lisp
+;(setq elpy-rpc-backend "jedi")
+#+END_SRC
+*** anaconda
+
+Type =C-M-i= to start a completion.
+
+Enable company-anaconda
+#+BEGIN_SRC emacs-lisp
+(use-package company-anaconda
+  :after (anaconda-mode company)
+  :config (add-to-list 'company-backends 'company-anaconda))
+#+END_SRC
+
+Enable anaconda-mode
+#+BEGIN_SRC emacs-lisp
+(add-hook 'python-mode-hook 'anaconda-mode)
+#+END_SRC
+
+Enable anaconda-eldoc-mode - when point is between the paranthesis of a function call, its parameters are shown in the echo area.
+#+BEGIN_SRC emacs-lisp
+(add-hook 'python-mode-hook 'anaconda-eldoc-mode)
+#+END_SRC
+
+If you need to reset the interpreter when using python in docker, run the following
+#+BEGIN_EXAMPLE emacs-lisp
+(setq python-shell-interpreter "/usr/local/bin/python")
+#+END_EXAMPLE
+** Web
+*** Common
+**** impatient-mode
+Point your browser at http://localhost:8080/imp/ and select the buffer you want to view live.
+
+#+BEGIN_SRC emacs-lisp
+(use-package impatient-mode)
+#+END_SRC
+
+To start impatient mode in a session, do the following -
+#+BEGIN_EXAMPLE emacs-lisp
+M-x httpd-start ; Once per session.
+M-x impatient-mode ; Enable this minor-mode Once per buffer.
+#+END_EXAMPLE
+
+*** CSS
+#+BEGIN_SRC emacs-lisp
+(require 'css-mode)
+(setq css-indent-offset 2)
+#+END_SRC
+
+*** Javascript
+Indent by 2 spaces
+#+BEGIN_SRC emacs-lisp
+(setq js-indent-level 2)
+#+END_SRC
+** Lisps
+Common settings for all Lisps
+#+BEGIN_SRC emacs-lisp
+  (setq lispy-mode-hooks
+        '(clojure-mode-hook
+          emacs-lisp-mode-hook
+          lisp-mode-hook
+          scheme-mode-hook))
+
+  (dolist (hook lispy-mode-hooks)
+    (add-hook hook (lambda()
+                     (setq show-paren-style 'expression)
+                     (rainbow-delimiters-mode))))
+
+(add-hook 'emacs-lisp-mode-hook 'eldoc-mode)
+
+#+END_SRC
+*** SLIME
+**** Path to the Lisp Compiler
+
+#+BEGIN_SRC emacs-lisp
+(if (string-equal system-name "AMITH-SP4")
+    (setq inferior-lisp-program "sbcl.exe")
+  (setq inferior-lisp-program "/usr/local/bin/sbcl")
+  )
+#+END_SRC
+** JSON
+*** Collapse large json objects to single line.
+This is useful when working with the AWS CLI.
+From [[https://stackoverflow.com/questions/39861580/emacs-program-to-collapse-json-to-single-line][this]] SO link.
+#+BEGIN_SRC emacs-lisp
+(defun apm/json-to-single-line (beg end)
+  "Collapse prettified json in region between BEG and END to a single line"
+  (interactive "r")
+  (if (use-region-p)
+      (save-excursion
+        (save-restriction
+          (narrow-to-region beg end)
+          (goto-char (point-min))
+          (while (re-search-forward "\\s-+\\|\n" nil t)
+            (replace-match " "))))
+    (print "This function operates on a region")))
+#+END_SRC
+** YAML Mode
+*** Setup YAML mode
+
+#+BEGIN_SRC emacs-lisp
+(require 'yaml-mode)
+(add-to-list 'auto-mode-alist '("\\.yaml\\'" . yaml-mode))
+#+END_SRC
+
+** TRAMP mode
+#+BEGIN_SRC emacs-lisp
+(setq tramp-default-method "ssh")
+#+END_SRC
+** Shell mode
+*** Default shell to Bash
+#+BEGIN_SRC emacs-lisp
+(defvar my-term-shell "/bin/bash")
+(defadvice ansi-term (before force-bash)
+  (interactive (list my-term-shell)))
+(ad-activate 'ansi-term)
+#+END_SRC
+*** Bash Completion
+#+BEGIN_SRC emacs-lisp
+  (use-package bash-completion
+    :config
+    (bash-completion-setup))
+#+END_SRC
+*** Global key to pull up shell
+#+BEGIN_SRC emacs-lisp
+(global-set-key [f1] 'shell)
+#+END_SRC
+*** eshell Clear functionality
+#+BEGIN_SRC emacs-lisp
+;Clear the eshell buffer.
+(defun eshell/clear ()
+   (let ((eshell-buffer-maximum-lines 0)) (eshell-truncate-buffer)))
+#+END_SRC
+** eshell Settings
+*** Add important stuff to path
+#+BEGIN_SRC emacs-lisp
+  (defun eshell-mode-hook-func ()
+    (setq paths-to-add "/Library/Frameworks/Python.framework/Versions/3.6/bin:")
+    (setq eshell-path-env (concat paths-to-add  eshell-path-env))
+    (setenv "PATH" (concat paths-to-add (getenv "PATH")))
+                                          ;(define-key eshell-mode-map (kbd "M-s") 'other-window-or-split))
+    )
+  (add-hook 'eshell-mode-hook 'eshell-mode-hook-func)
 #+END_SRC
 * Docker Setup
 ** Machine specific configuration
@@ -1080,20 +1047,58 @@ You can specify image name in the Dockerfile itself by adding a line like the fo
 (add-to-list 'auto-mode-alist '("Dockerfile\\'" . dockerfile-mode))
 (put 'dockerfile-image-name 'safe-local-variable #'stringp)
 #+END_SRC
-* eshell Settings
-** Add important stuff to path
+* elfeed configuration
+Disabled all elfeed configuration and load.
+** elfeed Helper functions
 #+BEGIN_SRC emacs-lisp
-  (defun eshell-mode-hook-func ()
-    (setq paths-to-add "/Library/Frameworks/Python.framework/Versions/3.6/bin:")
-    (setq eshell-path-env (concat paths-to-add  eshell-path-env))
-    (setenv "PATH" (concat paths-to-add (getenv "PATH")))
-                                          ;(define-key eshell-mode-map (kbd "M-s") 'other-window-or-split))
-    )
-  (add-hook 'eshell-mode-hook 'eshell-mode-hook-func)
+;;  (defun apm/elfeed-show-all ()
+;;    (interactive)
+;;    (bookmark-maybe-load-default-file)
+;;    (bookmark-jump "elfeed-all"))
+
+;;  (defun apm/elfeed-show-emacs ()
+;;    (interactive)
+;;    (bookmark-maybe-load-default-file)
+;;    (bookmark-jump "elfeed-emacs"))
+
+;; (defun apm/elfeed-show-aws()
+;;    (interactive)
+;;    (bookmark-maybe-load-default-file)
+;;    (bookmark-jump "elfeed-aws"))
+
+
+;;  (defun apm/elfeed-load-db-and-open ()
+;;    "Wrapper to load the elfeed db from disk before opening"
+;;    (interactive)
+;;    (elfeed-db-load)
+;;    (elfeed)
+;;    (elfeed-search-update--force))
 #+END_SRC
-* TRAMP mode
+
+** Configure elfeed
 #+BEGIN_SRC emacs-lisp
-(setq tramp-default-method "ssh")
+;;  (use-package elfeed
+;;    :ensure t
+;;    :bind (:map elfeed-search-mode-map
+;;                ("a" . apm/elfeed-show-all)
+;;                ("b" . apm/elfeed-show-aws)
+;;                ("e" . apm/elfeed-show-emacs)))
+
+;;  (use-package elfeed-goodies
+;;    :config
+;;    (elfeed-goodies/setup))
+
+#+END_SRC
+
+** Setup elfeed-org
+Use an org file for feed URLs. This section must be run *AFTER* the org-mode section as it uses variables defined there.
+
+#+BEGIN_SRC emacs-lisp
+;;  (use-package elfeed-org
+;;    :ensure t
+;;    :config
+;;    (elfeed-org)
+;;    (setq rmh-elfeed-org-files (list (concat (file-name-as-directory org-directory) "elfeed.org"))))
 #+END_SRC
 * Projectile
 ** Enable Projectile globally!
