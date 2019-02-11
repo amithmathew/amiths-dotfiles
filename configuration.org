@@ -263,12 +263,29 @@ Make additional changes to the color schemes.
     (setq sml/mode-width 'full)
     (setq sml/shorten-directory t)
     (setq sml/shorten-modes t)
-;    (require-package 'smart-mode-line-powerline-theme)
+                                        ;    (require-package 'smart-mode-line-powerline-theme)
     (setq powerline-default-separator-dir '(right . left))
     (setq powerline-arrow-shape 'curve)
     (setq sml/theme 'powerline)
+    (setq powerline-image-apple-rgb t)
     (sml/setup))
 #+END_SRC
+**** spaceline
+#+begin_src emacs-lisp
+  ;; (use-package spaceline
+  ;;   :ensure t
+  ;;   :init
+  ;;   (require 'spaceline-config)
+  ;;   :config
+  ;;   (spaceline-spacemacs-theme)
+  ;;   (spaceline-toggle-minor-modes-off))
+#+end_src
+
+#+begin_src emacs-lisp
+  ;; (use-package spaceline-all-the-icons
+  ;;   :after spaceline
+  ;;   :config (spaceline-all-the-icons-theme))
+#+end_src
 
 *** Remove unnecessary Chrome
 
@@ -306,16 +323,15 @@ Spaces.
 #+END_SRC
 *** Mac specific colorspace cleanup and anti-aliasing
 #+BEGIN_SRC emacs-lisp
-  (setq ns-use-srgb-colorspace nil) ;Needed to keep powerline arrows clean.
   (setq mac-allow-anti-aliasing t)
 #+END_SRC
 *** major-mode-icons
 Not very nice on windows - the icon is too small.
 #+BEGIN_SRC emacs-lisp
-  ;(use-package mode-icons
-  ;  :ensure t
-  ;  :config
-  ;  (mode-icons-mode t))
+  (use-package mode-icons
+    :ensure t
+    :config
+    (mode-icons-mode t))
 #+END_SRC
 *** Line Number and Column Number mode
 #+BEGIN_SRC emacs-lisp
@@ -504,6 +520,13 @@ Beautiful icons
 
   (setq org-default-notes-file (concat (file-name-as-directory org-directory) "refile.org"))
 #+END_SRC
+** Require =org-tempo= for Block completion
+Easy template completion (Expanding <s to #+BEGIN_SRC does not work in org 9.2.1 without this.)
+
+#+begin_src emacs-lisp
+(require 'org-tempo)
+#+end_src
+
 ** Org-Mode Todo and Agenda settings
 A lot of what follows was shamelessly from Aaron Beiber's [[https://blog.aaronbieber.com/2016/01/30/dig-into-org-mode.html][post]].
 *** Setting up org-mode task states and agenda settings.
@@ -1020,6 +1043,68 @@ From [[https://stackoverflow.com/questions/39861580/emacs-program-to-collapse-js
     )
   (add-hook 'eshell-mode-hook 'eshell-mode-hook-func)
 #+END_SRC
+** Sql Mode
+*** Open SQL Connection for an existing SQL mode window
+#+begin_src emacs-lisp
+  (defun apm/set-current-sqli-buffer ()
+    (interactive)
+    (sql-set-sqli-buffer *SQL*))
+  (global-set-key (kbd "C-. s") 'apm/set-current-sqli-buffer)
+#+end_src
+
+*** Better sql-send-region formatting.
+#+begin_src emacs-lisp
+  (defvar sql-last-prompt-pos 1
+    "position of last prompt when added recording started")
+  (make-variable-buffer-local 'sql-last-prompt-pos)
+  (put 'sql-last-prompt-pos 'permanent-local t)
+
+  (defun sql-add-newline-first (output)
+    "Add newline to beginning of OUTPUT for `comint-preoutput-filter-functions'
+    This fixes up the display of queries sent to the inferior buffer
+    programatically."
+    (let ((begin-of-prompt
+           (or (and comint-last-prompt-overlay
+                    ;; sometimes this overlay is not on prompt
+                    (save-excursion
+                      (goto-char (overlay-start comint-last-prompt-overlay))
+                      (looking-at-p comint-prompt-regexp)
+                      (point)))
+               1)))
+      (if (> begin-of-prompt sql-last-prompt-pos)
+          (progn
+            (setq sql-last-prompt-pos begin-of-prompt)
+            (concat "\n" output))
+        output)))
+
+  (defun sqli-add-hooks ()
+    "Add hooks to `sql-interactive-mode-hook'."
+    (add-hook 'comint-preoutput-filter-functions
+              'sql-add-newline-first))
+
+  (add-hook 'sql-interactive-mode-hook 'sqli-add-hooks)
+#+end_src
+
+*** Fix Prompt handling for PG databases with '_' in their names.
+#+begin_src emacs-lisp
+#+end_src
+
+*** Nice to output each query before executing it.
+#+begin_src emacs-lisp
+  (add-hook 'sql-login-hook 'my-sql-login-hook)
+  (defun my-sql-login-hook ()
+    "Custom SQL log-in behaviours. See `sql-login-hook'."
+    ;; n.b. If you are looking for a response and need to parse the
+    ;; response, use `sql-redirect-value' instead of `comint-send-string'.
+    (when (eq sql-product 'postgres)
+      (sql-set-product-feature 'postgres :prompt-regexp "^[-[:alnum:]_]*=[#>] ")
+      (sql-set-product-feature 'postgres :prompt-cont-regexp
+                               "^[-[:alnum:]_]*[-(][#>] ")
+      (let ((proc (get-buffer-process (current-buffer))))
+        ;; Output each query before executing it. (n.b. this also avoids
+        ;; the psql prompt breaking the alignment of query results.)
+        (comint-send-string proc "\\set ECHO queries\n"))))
+#+end_src
 * Docker Setup
 ** Machine specific configuration
 #+BEGIN_SRC emacs-lisp
