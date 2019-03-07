@@ -32,6 +32,11 @@ We probably don't need this. An experiment for another day.
   ;(require 'dimnish)
   ;(require 'bind-key)
 #+END_SRC
+** Use personal-settings.el
+Loads things like creds and so on.
+#+begin_src emacs-lisp
+;(load-file "personal-settings.el")
+#+end_src
 
 ** Basic improvements.
 *** Turn off the audible beep.
@@ -136,7 +141,7 @@ Play nice if no SSL support.
 #+END_SRC
 
 ** Buffer management
-Always murder current buffer
+*** Always murder current buffer
 #+BEGIN_SRC emacs-lisp
   (defun kill-current-buffer ()
     "Kills the current buffer."
@@ -145,11 +150,32 @@ Always murder current buffer
   (global-set-key (kbd "C-x k") 'kill-current-buffer)
 #+END_SRC
 
-Turn buffer-list into ibuffer
+*** Turn buffer-list into ibuffer
 #+BEGIN_SRC emacs-lisp
   (global-set-key (kbd "C-x C-b") 'ibuffer)
 #+END_SRC
 
+*** Group buffers in ibuffer
+
+#+begin_src emacs-lisp
+      (setq ibuffer-saved-filter-groups
+            (quote (("default"
+                     ("dired" (mode . dired-mode))
+                     ("planner" (or
+                                 (name . "^\\*Calendar\\*$")
+                                 (name . "^diary$")
+                                 (name . "^meeting-notes\\*$")
+                                 (name . "\\*agenda\\*$")))
+                     ("emacs" (or
+                               (name . "^\\*scratch\\*$")
+                               (name . "^\\*Messages\\*$")))))))
+
+  (add-hook 'ibuffer-mode-hook
+            (lambda ()
+              (ibuffer-switch-to-saved-filter-groups "default")))
+
+
+#+end_src
 * User Interface and Helpers
 ** UI
 *** Font settings.
@@ -210,7 +236,7 @@ I like Consolas.
 *** Handle unicode characters well.
 Including a unicode character on a line sometimes increases the height of some fonts. This takes care of that.
 
-#+BEGIN_SRC emacs-lis[
+#+BEGIN_SRC emacs-lisp
 (unicode-fonts-setup)
 #+END_SRC
 
@@ -323,7 +349,8 @@ Spaces.
 #+END_SRC
 *** Mac specific colorspace cleanup and anti-aliasing
 #+BEGIN_SRC emacs-lisp
-  (setq mac-allow-anti-aliasing t)
+  (when (memq window-system '(mac ns x))
+    (setq mac-allow-anti-aliasing t))
 #+END_SRC
 *** major-mode-icons
 Not very nice on windows - the icon is too small.
@@ -371,14 +398,14 @@ Highlights the cursor when switching buffers
 *** New startup screen which works with Projectile.
 
 #+BEGIN_SRC emacs-lisp
-  (use-package dashboard
-    :ensure t
-    :config
-      (dashboard-setup-startup-hook)
-      (setq dashboard-startup-banner "~/.emacs.d/aws.png")
-      (setq dashboard-items '((recents  . 10)
-                              (projects . 5)))
-      (setq dashboard-banner-logo-title ""))
+;  (use-package dashboard
+;    :ensure t
+;    :config
+;      (dashboard-setup-startup-hook)
+;      (setq dashboard-startup-banner "~/.emacs.d/aws.png")
+;      (setq dashboard-items '((recents  . 10)
+;                              (projects . 5)))
+;      (setq dashboard-banner-logo-title ""))
 #+END_SRC
 
 *** Change some font faces and colors on the Dashboard.
@@ -499,9 +526,8 @@ Beautiful icons
   (setq org-startup-indented t)
   (setq org-startup-truncated nil)
   (setq org-startup-folded t)
-
   (setq org-log-into-drawer t)
-  ;(setq org-ellipsis "⤵")
+                                          ;(setq org-ellipsis "⤵")
   (setq org-ellipsis "↴")
   (setq org-startup-with-inline-images t)
 
@@ -516,7 +542,7 @@ Beautiful icons
       (setq org-directory "~/../org")
       (setq org-az-directory ""))))
 
-                                          ; (setq org-agenda-files (list "~/Dropbox/org/customers"))
+  (setq org-agenda-files (list "~/Dropbox/org/todo.org"))
 
   (setq org-default-notes-file (concat (file-name-as-directory org-directory) "refile.org"))
 #+END_SRC
@@ -528,16 +554,17 @@ Easy template completion (Expanding <s to #+BEGIN_SRC does not work in org 9.2.1
 #+end_src
 
 ** Org-Mode Todo and Agenda settings
-A lot of what follows was shamelessly from Aaron Beiber's [[https://blog.aaronbieber.com/2016/01/30/dig-into-org-mode.html][post]].
+Aaron Beiber's [[https://blog.aaronbieber.com/2016/01/30/dig-into-org-mode.html][post]] here is good reference.
+
 *** Setting up org-mode task states and agenda settings.
 Any states after the pipe symbol are considered to be "Completion" states.
 The symbol =!= represents capturing the timestamp of state change.
 The symbol =@= represents capturing a note iwth timestamp.
 The symbol =@/!= for the =WAIT= state means a timestamp+note should be captured when entering the state and a timestamp should be captured when leaving the state as well, irrespective of whether the target state captures a timestamp or not. Its not really applicable here as all my states are capturing timestamps.
+
 #+BEGIN_SRC emacs-lisp
   (setq org-todo-keywords
         '((sequence "TODO(t!)" "WAIT(w@/!)" "|" "DONE(d!)" "CANCELED(c@)")))
-  (setq org-agenda-files (list org-directory))
 #+END_SRC
 
 *** Hotkey to open agenda-list along with some customization
@@ -556,8 +583,6 @@ Invoking the function after pressing the prefix key (so, =C-u C-c t a=) will ope
 
   (define-key global-map (kbd "C-c t a") 'apm/jump-to-org-agenda)
 #+END_SRC
-
-
 *** Hotkey to open my custom agenda view
 #+BEGIN_SRC emacs-lisp
   (defun apm/org-show-custom-agenda-view (&optional arg)
@@ -566,11 +591,8 @@ Invoking the function after pressing the prefix key (so, =C-u C-c t a=) will ope
 
   (define-key global-map (kbd "C-c t c") 'apm/org-show-custom-agenda-view)
 #+END_SRC
-
-
-
-
 *** Agenda/Org mode tweaks
+
 #+BEGIN_SRC emacs-lisp
 (setq org-agenda-text-search-extra-files '(agenda-archives))
 #+END_SRC
@@ -606,8 +628,31 @@ Create a custom agenda command
 ** Org-mode image display
 By default, org-mode does not scale any inline images displayed, which sometimes results in having to maximize the window to really see the image. This is the solution to that problem.
 
+
+Some examples -
+#+begin_example
+: From: Bastien <bzg@altern.org>
+: Newsgroups: gmane.emacs.orgmode
+: Subject: Re: scale inline images in orgmode
+: Date: Thu, 30 Aug 2012 15:52:59 +0200
+: Message-ID: <87a9xcsczo.fsf@altern.org>
+:
+: You can now (from git master) use `org-image-actual-width'.
+: (setq org-image-actual-width 300)
+:   => always resize inline images to 300 pixels
+: (setq org-image-actual-width '(400))
+:   => if there is a #+ATTR.*: width="200", resize to 200,
+:      otherwise resize to 400
+: (setq org-image-actual-width nil)
+:   => if there is a #+ATTR.*: width="200", resize to 200,
+:      otherwise don't resize
+: (setq org-image-actual-width t)
+:   => Never resize and use original width (the default)
+#+end_example
+
 #+BEGIN_SRC emacs-lisp
-  (setq org-image-actual-width (list (/ (display-pixel-width) 3)))
+    ;;(setq org-image-actual-width (list (/ (display-pixel-width) 3)))
+  (setq org-image-actual-width '(300))
 #+END_SRC
 
 ** Org-mode Hot Keys
@@ -686,17 +731,19 @@ I don't want it.
 *** Export to HTML
 Nice stylesheet
 #+BEGIN_SRC emacs-lisp
-    (setq org-html-head-include-default-style nil)
-  (setq org-html-head-include-scripts nil)
                                           ;(setq org-html-head "<link rel=\"stylesheet\" type=\"text/css\" href=\"http://gongzhitaao.org/orgcss/org.css\"/>")
                                           ;(setq org-html-head "<link rel=\"stylesheet\" href=\"https://cdn.rawgit.com/edwardtufte/tufte-css/gh-pages/tufte.css\" type=\"text/css\" />")
-  (setq org-html-head "<link rel=\"stylesheet\" href=\"https://unpkg.com/sakura.css/css/sakura.css\" type=\"text/css\"/>")
+  (setq org-html-head-include-default-style nil)
+  (setq org-html-head-include-scripts nil)
+  (setq org-html-head "<link rel=\"stylesheet\" href=\"https://unpkg.com/sakura.css/css/sakura.css\" type=\"text/css\" />")
   (setq org-html-htmlize-output-type 'css)
 #+END_SRC
+
+
 *** Export to Bootstrap
 #+BEGIN_SRC emacs-lisp
-(use-package ox-twbs
-  :ensure t)
+  (use-package ox-twbs
+    :ensure t)
 #+END_SRC
 ** Org Capture Settings
 
@@ -840,6 +887,18 @@ Currently working on mac using =screencapture=. Not setup for Windows.
         org-ref-default-bibliography '(concat (file-name-as-directory org-directory) "/ref/master.bib")
         org-ref-pdf-directory (concat (file-name-as-directory org-directory) "/ref/pdfs/"))
 #+END_SRC
+** Org-alert Settings
+Integrates with terminal-notifier on mac.
+#+begin_src emacs-lisp
+  (use-package org-alert
+    :ensure t
+    :config
+    (setq alert-default-style 'notifier))
+#+end_src
+* pdf-tools
+#+begin_src emacs-lisp
+(pdf-loader-install)
+#+end_src
 * Deft setup
 ** Setup deft for NV style note management
 #+BEGIN_SRC emacs-lisp
@@ -867,6 +926,22 @@ Enable linum-mode in all programming modes
 #+BEGIN_SRC emacs-lisp
 ;(add-hook 'prog-mode-hook 'linum-mode)
 #+END_SRC
+
+Process ANSI colors in compilation buffer.
+;; Stolen from (http://endlessparentheses.com/ansi-colors-in-the-compilation-buffer-output.html)
+#+begin_src emacs-lisp
+  (use-package ansi-color)
+  (defun apm/colorize-compilation ()
+    "Colorize from `compilation-filter-start' to `point'."
+    (let ((inhibit-read-only t))
+      (ansi-color-apply-on-region
+       compilation-filter-start (point))))
+
+  (add-hook 'compilation-filter-hook
+            #'apm/colorize-compilation)
+#+end_src
+
+
 
 ** Python
 Use Python3
