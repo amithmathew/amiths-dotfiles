@@ -6,6 +6,10 @@
 ;; You may delete these explanatory comments.
 (package-initialize)
 
+(require 'package)
+(add-to-list 'package-archives
+             '("melpa" . "https://melpa.org/packages/") t)
+
 (require 'org)
 (org-babel-load-file
  (expand-file-name "~/.emacs.d/configuration.org"))

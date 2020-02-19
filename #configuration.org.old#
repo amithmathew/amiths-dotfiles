@@ -17,7 +17,6 @@ We probably don't need this. An experiment for another day.
 #+BEGIN_SRC emacs-lisp
 (package-initialize)
 (add-to-list 'load-path "~/.emacs.d/lisp/")
-(add-to-list 'exec-path "/Library/Frameworks/Python.framework/Versions/3.6/bin")
 #+END_SRC
 ** Auto-install =use-package= if missing.
 =use-package= cannot install itself.
@@ -53,11 +52,10 @@ Disable bell completely.
 
 #+BEGIN_SRC emacs-lisp
 (use-package smooth-scrolling
-:ensure t
-:config
+:ensure t)
 (smooth-scrolling-mode t)
 (setq scroll-conservatively 100)
-(setq hscroll-margin 5)) ; Keep these many lines between the cursor and bottom of buffer.
+(setq hscroll-margin 5) ; Keep these many lines between the cursor and bottom of buffer.
 #+END_SRC
 
 *** Point control
@@ -99,13 +97,32 @@ If some text is selected, and you type some text, delete the selected text and s
 #+BEGIN_SRC emacs-lisp
 ;(global-display-line-numbers-mode) ;Commenting out as it slows down buffer refresh and doesn't play nicely with some modes.
 #+END_SRC
+*** Unicode fun
+**** Handle font sizing when including unicode characters.
+#+BEGIN_SRC emacs-lisp
+(use-package unicode-fonts
+:config
+(unicode-fonts-setup))
+#+END_SRC
+
+**** "Hail Mary" on making unicode work on windows.
+#+BEGIN_SRC emacs-lisp
+(prefer-coding-system 'utf-8)
+#+END_SRC
+**** More UTF-8 Settings!
+Thank you [[https://github.com/daedreth/UncleDavesEmacs][Uncle Dave]]!
+#+BEGIN_SRC emacs-lisp
+(setq locale-coding-system 'utf-8)
+(set-terminal-coding-system 'utf-8)
+(set-keyboard-coding-system 'utf-8)
+(set-selection-coding-system 'utf-8)
+#+END_SRC
 *** Set PATH when on OSX or Linux
 #+BEGIN_SRC emacs-lisp
-;;(use-package exec-path-from-shell
-;;:ensure t
-;;:config (
-;;  (when (memq window-system '(mac ns x))
-;;    (exec-path-from-shell-initialize))))
+  (when (memq window-system '(mac ns x))
+    (use-package exec-path-from-shell
+      :config
+      (exec-path-from-shell-initialize)))
 #+END_SRC
 *** Use async processes wherever possible
 #+BEGIN_SRC emacs-lisp
@@ -177,9 +194,9 @@ I like Consolas.
    ((string-equal system-type "windows-nt") ; Microsoft Windows
     (setq apm/default-font "Consolas")
     (setq apm/default-font-size 12))
-   ((string-equal system-type "gnu/linux") ; Linux
-    (setq apm/default-font "Inconsolata")
-    (setq apm/default-font-size 14)))
+((string-equal system-type "gnu/linux") ; Linux
+  (setq apm/default-font "Inconsolata")
+  (setq apm/default-font-size 14)))
 
     (setq apm/current-font-size apm/default-font-size)
 
@@ -223,26 +240,7 @@ I like Consolas.
     (apm/reset-font-size)
 #+END_SRC
 
-*** Unicode Settings
-**** Handle font sizing when including unicode characters.
-#+BEGIN_SRC emacs-lisp
-(use-package unicode-fonts
-  :ensure t
-  :config (unicode-fonts-setup))
-#+END_SRC
 
-**** "Hail Mary" on making unicode work on windows.
-#+BEGIN_SRC emacs-lisp
-(prefer-coding-system 'utf-8)
-#+END_SRC
-**** More UTF-8 Settings!
-Thank you [[https://github.com/daedreth/UncleDavesEmacs][Uncle Dave]]!
-#+BEGIN_SRC emacs-lisp
-(setq locale-coding-system 'utf-8)
-(set-terminal-coding-system 'utf-8)
-(set-keyboard-coding-system 'utf-8)
-(set-selection-coding-system 'utf-8)
-#+END_SRC
 *** Theme
 **** Keep all characters at same font height
 This needs to be run before loading the solarized-dark theme.
@@ -271,8 +269,7 @@ Manoj-dark is also nice.
 So is [[https://github.com/purcell/color-theme-sanityinc-tomorrow][sanityinc-tomorrow]]
 #+BEGIN_SRC emacs-lisp
   (use-package color-theme-sanityinc-tomorrow
-    :ensure t
-    :init
+    :config
     (load-theme 'sanityinc-tomorrow-bright t))
 #+END_SRC
 
@@ -285,6 +282,7 @@ Make additional changes to the color schemes.
 *** Mode-line Configuration
 **** Smart-Mode-Line package
 #+BEGIN_SRC emacs-lisp
+
   (use-package smart-mode-line
     :ensure t
     :config
@@ -295,10 +293,17 @@ Make additional changes to the color schemes.
     (setq sml/shorten-modes t)
                                         ;    (require-package 'smart-mode-line-powerline-theme)
     (setq powerline-default-separator-dir '(right . left))
-    (setq powerline-arrow-shape 'curve)
-    (setq sml/theme 'powerline)
-    (setq powerline-image-apple-rgb t)
-    (sml/setup))
+    (setq powerline-arrow-shape 'curve))
+
+  (use-package smart-mode-line-powerline-theme
+:ensure t
+:after powerline
+:after smart-mode-line
+:config
+ (sml/setup)
+(sml/apply-theme 'powerline))
+
+
 #+END_SRC
 **** spaceline
 #+begin_src emacs-lisp
@@ -346,13 +351,7 @@ Spaces.
 (show-paren-mode t)
 (setq show-paren-delay 0.0)
 #+END_SRC
-*** Rainbow Delimiters
-#+BEGIN_SRC emacs-lisp
-(use-package rainbow-delimiters
-  :ensure t
-  :init
-    (add-hook 'prog-mode-hook 'rainbow-delimiters-mode))
-#+END_SRC
+
 *** Fancy Lambdas
 #+BEGIN_SRC emacs-lisp
 (global-prettify-symbols-mode t)
@@ -463,7 +462,6 @@ Warning: I've rebinded the prefix to avoid conflict with org-mode refile.
 ** which-key setup
 #+BEGIN_SRC emacs-lisp
   (use-package which-key
-    :ensure t
     :config
     (which-key-mode))
 #+END_SRC
@@ -561,9 +559,8 @@ Beautiful icons
 Easy template completion (Expanding <s to #+BEGIN_SRC does not work in org 9.2.1 without this.)
 
 #+begin_src emacs-lisp
-;(use-package org-tempo
-;:ensure t
-;:after org)
+(use-package org-tempo
+:after org)
 #+end_src
 
 ** Org-Mode Todo and Agenda settings
@@ -696,7 +693,6 @@ Nice bullets for org mode.
 
 #+BEGIN_SRC emacs-lisp
 (use-package org-bullets
-:ensure t
 :after org
 :config
 (add-hook 'org-mode-hook 'org-bullets-mode))
@@ -731,14 +727,17 @@ I don't want it.
 *** Custom export modules
 
 #+BEGIN_SRC emacs-lisp
-(use-package ox-md
-:after org)
+  (eval-after-load "org"
+    '(progn
+       (require 'ox-md nil t)
+       ;(require 'ox-tufte)
+       ))
 #+END_SRC
 
 *** Export to ODT
 #+BEGIN_SRC emacs-lisp
-(use-package ox-odt
-:after org)
+(eval-after-load "org"
+  '(require 'ox-odt nil t))
 #+END_SRC
 
 *** Export to HTML
@@ -756,8 +755,7 @@ Nice stylesheet
 *** Export to Bootstrap
 #+BEGIN_SRC emacs-lisp
   (use-package ox-twbs
-    :ensure t
-    :after org)
+    :ensure t)
 #+END_SRC
 ** Org Capture Settings
 
@@ -843,7 +841,7 @@ Shortcut to trigger org-refile is =C-c C-w=
 *** Require packages
 **** Org-mode instead of Jupyter notebooks!
 #+BEGIN_SRC emacs-lisp
-  ;;(use-package ob-python)
+  (use-package ob-python)
     ;:config
     ;(setq ob-ipython-command "ipython3"))
 #+END_SRC
@@ -863,9 +861,9 @@ Shortcut to trigger org-refile is =C-c C-w=
   (org-babel-do-load-languages
    'org-babel-load-languages
    '((lisp . t)
-    ;; (restclient . t)
+     (restclient . t)
      (python . t)
-    ;; (ipython . t)
+     (ipython . t)
      (shell . t)))
 #+END_SRC
 
@@ -911,7 +909,7 @@ Integrates with terminal-notifier on mac.
 #+end_src
 * pdf-tools
 #+begin_src emacs-lisp
-;(pdf-loader-install)
+(pdf-loader-install)
 #+end_src
 * Deft setup
 ** Setup deft for NV style note management
@@ -954,6 +952,9 @@ Process ANSI colors in compilation buffer.
   (add-hook 'compilation-filter-hook
             #'apm/colorize-compilation)
 #+end_src
+
+
+
 ** Python
 Use Python3
 #+BEGIN_SRC emacs-lisp
@@ -1019,8 +1020,7 @@ If you need to reset the interpreter when using python in docker, run the follow
 Point your browser at http://localhost:8080/imp/ and select the buffer you want to view live.
 
 #+BEGIN_SRC emacs-lisp
-(use-package impatient-mode
-:ensure t)
+(use-package impatient-mode)
 #+END_SRC
 
 To start impatient mode in a session, do the following -
@@ -1031,9 +1031,8 @@ M-x impatient-mode ; Enable this minor-mode Once per buffer.
 
 *** CSS
 #+BEGIN_SRC emacs-lisp
-(use-package css-mode
-:config
-(setq css-indent-offset 2))
+(require 'css-mode)
+(setq css-indent-offset 2)
 #+END_SRC
 
 *** Javascript
@@ -1088,38 +1087,14 @@ From [[https://stackoverflow.com/questions/39861580/emacs-program-to-collapse-js
 *** Setup YAML mode
 
 #+BEGIN_SRC emacs-lisp
-(use-package yaml-mode
-:ensure t
-:config
-(add-to-list 'auto-mode-alist '("\\.yaml\\'" . yaml-mode)))
+(require 'yaml-mode)
+(add-to-list 'auto-mode-alist '("\\.yaml\\'" . yaml-mode))
 #+END_SRC
 
 ** TRAMP mode
 #+BEGIN_SRC emacs-lisp
 (setq tramp-default-method "ssh")
 #+END_SRC
-
-Setup gcloud compute ssh through tramp. [[https://gist.github.com/jackrusher/36c80a2fd6a8fe8ddf46bc7e408ae1f9][link]].
-
-#+BEGIN_SRC emacs-lisp
-  (add-to-list 'tramp-methods
-    '("gcssh"
-      (tramp-login-program        "gcloud compute ssh")
-      (tramp-login-args           (("%h")
-                                   ("--project-id" "pso-learning"))
-      (tramp-async-args           (("-q")))
-      (tramp-remote-shell         "/bin/sh")
-      (tramp-remote-shell-args    ("-c"))
-      (tramp-gw-args              (("-o" "GlobalKnownHostsFile=/dev/null")
-                                   ("-o" "UserKnownHostsFile=/dev/null")
-                                   ("-o" "StrictHostKeyChecking=no")))
-      (tramp-default-port         22))))
-
-  ;; ... after which it's as easy as:
-  ;;
-  ;; C-x C-f /gcssh:compute-instance:/path/to/filename.clj
-#+END_SRC
-
 ** Shell mode
 *** Default shell to Bash
 #+BEGIN_SRC emacs-lisp
@@ -1130,10 +1105,9 @@ Setup gcloud compute ssh through tramp. [[https://gist.github.com/jackrusher/36c
 #+END_SRC
 *** Bash Completion
 #+BEGIN_SRC emacs-lisp
-    (use-package bash-completion
-      :ensure t
-      :config
-      (bash-completion-setup))
+  (use-package bash-completion
+    :config
+    (bash-completion-setup))
 #+END_SRC
 *** Global key to pull up shell
 #+BEGIN_SRC emacs-lisp
@@ -1218,20 +1192,20 @@ Setup gcloud compute ssh through tramp. [[https://gist.github.com/jackrusher/36c
         ;; the psql prompt breaking the alignment of query results.)
         (comint-send-string proc "\\set ECHO queries\n"))))
 #+end_src
-* Docker Setup - Commented.
+* Docker Setup
 ** Machine specific configuration
 #+BEGIN_SRC emacs-lisp
- ; (cond
- ;  ((string-equal system-type "darwin") ; MacOS
- ;       (progn
- ;       (setenv "PATH" (concat (getenv "PATH") ":/usr/local/bin"))
- ;       (setq exec-path (append exec-path '("/usr/local/bin")))
- ;       ;; Use "docker-machine env box" command to find out your environment variables
- ;       ;(setenv "DOCKER_TLS_VERIFY" "1")
- ;       ;(setenv "DOCKER_HOST" "tcp://10.11.12.13:2376")
- ;       ;(setenv "DOCKER_CERT_PATH" "/Users/foo/.docker/machine/machines/box")
- ;       ;(setenv "DOCKER_MACHINE_NAME" "box")
- ;       )))
+  (cond
+   ((string-equal system-type "darwin") ; MacOS
+        (progn
+        (setenv "PATH" (concat (getenv "PATH") ":/usr/local/bin"))
+        (setq exec-path (append exec-path '("/usr/local/bin")))
+        ;; Use "docker-machine env box" command to find out your environment variables
+        ;(setenv "DOCKER_TLS_VERIFY" "1")
+        ;(setenv "DOCKER_HOST" "tcp://10.11.12.13:2376")
+        ;(setenv "DOCKER_CERT_PATH" "/Users/foo/.docker/machine/machines/box")
+        ;(setenv "DOCKER_MACHINE_NAME" "box")
+        )))
 #+END_SRC
 ** Dockerfile setup
 
@@ -1241,9 +1215,9 @@ You can specify image name in the Dockerfile itself by adding a line like the fo
 #+END_EXAMPLE
 
 #+BEGIN_SRC emacs-lisp
-;(require 'dockerfile-mode)
-;(add-to-list 'auto-mode-alist '("Dockerfile\\'" . dockerfile-mode))
-;(put 'dockerfile-image-name 'safe-local-variable #'stringp)
+(require 'dockerfile-mode)
+(add-to-list 'auto-mode-alist '("Dockerfile\\'" . dockerfile-mode))
+(put 'dockerfile-image-name 'safe-local-variable #'stringp)
 #+END_SRC
 * elfeed configuration
 Disabled all elfeed configuration and load.
