@@ -1,0 +1,21 @@
+# -*- coding: utf-8 -*-
+# name: Hugo Frontmatter
+# contributor: me@amithm.ca
+# key: front
+# --
+---
+title: ${1:title}
+date:`(format-time-string "%Y-%m-%dT%H:%M:%S-05:00")`
+draft: true
+description:
+show_description: false
+license: ''
+categories: ${2:blog}
+featured_image: ''
+featured_image_preview: ''
+comment: false
+toc: false
+autoCollapseToc: true
+math:false
+---
+$0

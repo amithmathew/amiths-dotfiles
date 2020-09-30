@@ -260,7 +260,7 @@ This needs to be run before loading the solarized-dark theme.
 Solarized Dark is nice.
 
 #+BEGIN_SRC emacs-lisp
-;;(load-theme 'solarized-dark t)
+;(load-theme 'solarized-dark t)
 #+END_SRC
 
 Manoj-dark is also nice.
@@ -425,12 +425,109 @@ Highlights the cursor when switching buffers
 ;   `(dashboard-banner-logo-title-face ((((class color) (min-colors 88)) (:foreground "#61afef" :bold t :height 1.2))))
 ;   `(widget-button ((((class color) (min-colors 88)) (:foreground "#61afef" :bold nil :underline t :height 0.9))))
 #+END_SRC
-
-** NeoTree
-*** Use icons with Neo-tree.
+** All-The-Icons and Fonts
+#+BEGIN_SRC emacs-lisp
+;; https://github.com/domtronn/all-the-icons.el/issues/120#issuecomment-565438080
+(defun apm/font-installed-p (font-name)
+  "Check if font with FONT-NAME is available."
+  (if (find-font (font-spec :name font-name))
+      t
+    nil))
+(use-package all-the-icons
+  :config
+  (when (and (not (apm/font-installed-p "all-the-icons"))
+             (window-system))
+    (all-the-icons-install-fonts t)))
+#+END_SRC
+** Treemacs
 
 #+BEGIN_SRC emacs-lisp
-(setq neo-theme (if (display-graphic-p) 'icons 'arrow))
+      (use-package treemacs
+        :ensure t
+        :defer t
+        :init
+    (with-eval-after-load 'winum
+      (define-key winum-keymap (kbd "M-0") #'treemacs-select-window))
+    :config
+    (progn
+      (setq treemacs-collapse-dirs                 (if treemacs-python-executable 3 0)
+            treemacs-deferred-git-apply-delay      0.5
+            treemacs-directory-name-transformer    #'identity
+            treemacs-display-in-side-window        t
+            treemacs-eldoc-display                 t
+            treemacs-file-event-delay              5000
+            treemacs-file-extension-regex          treemacs-last-period-regex-value
+            treemacs-file-follow-delay             0.2
+            treemacs-file-name-transformer         #'identity
+            treemacs-follow-after-init             t
+            treemacs-git-command-pipe              ""
+            treemacs-goto-tag-strategy             'refetch-index
+            treemacs-indentation                   2
+            treemacs-indentation-string            " "
+            treemacs-is-never-other-window         nil
+            treemacs-max-git-entries               5000
+            treemacs-missing-project-action        'ask
+            treemacs-move-forward-on-expand        nil
+            treemacs-no-png-images                 nil
+            treemacs-no-delete-other-windows       t
+            treemacs-project-follow-cleanup        nil
+            treemacs-persist-file                  (expand-file-name ".cache/treemacs-persist" user-emacs-directory)
+            treemacs-position                      'left
+            treemacs-recenter-distance             0.1
+            treemacs-recenter-after-file-follow    nil
+            treemacs-recenter-after-tag-follow     nil
+            treemacs-recenter-after-project-jump   'always
+            treemacs-recenter-after-project-expand 'on-distance
+            treemacs-show-cursor                   nil
+            treemacs-show-hidden-files             t
+            treemacs-silent-filewatch              nil
+            treemacs-silent-refresh                nil
+            treemacs-sorting                       'alphabetic-asc
+            treemacs-space-between-root-nodes      t
+            treemacs-tag-follow-cleanup            t
+            treemacs-tag-follow-delay              1.5
+            treemacs-user-mode-line-format         nil
+            treemacs-user-header-line-format       nil
+            treemacs-width                         35
+            treemacs-workspace-switch-cleanup      nil)
+
+      ;; The default width and height of the icons is 22 pixels. If you are
+      ;; using a Hi-DPI display, uncomment this to double the icon size.
+      ;;(treemacs-resize-icons 44)
+      (treemacs-resize-icons 10)
+
+
+      (treemacs-follow-mode t)
+      (treemacs-filewatch-mode t)
+      (treemacs-fringe-indicator-mode t)
+      (pcase (cons (not (null (executable-find "git")))
+                   (not (null treemacs-python-executable)))
+        (`(t . t)
+         (treemacs-git-mode 'deferred))
+        (`(t . _)
+         (treemacs-git-mode 'simple))))
+    :bind
+    (:map global-map
+          ("M-0"       . treemacs-select-window)
+          ("C-x t 1"   . treemacs-delete-other-windows)
+          ("C-x t t"   . treemacs)
+          ("C-x t B"   . treemacs-bookmark)
+          ("C-x t C-t" . treemacs-find-file)
+          ("C-x t M-t" . treemacs-find-tag)))
+
+
+  (use-package treemacs-projectile
+    :after treemacs projectile
+    :ensure t)
+
+  (use-package treemacs-icons-dired
+    :after treemacs dired
+    :ensure t
+    :config (treemacs-icons-dired-mode))
+
+  (use-package treemacs-magit
+    :after treemacs magit
+    :ensure t)
 #+END_SRC
 ** eyebrowse mode
 Simple minded Window config manager
@@ -466,6 +563,21 @@ Warning: I've rebinded the prefix to avoid conflict with org-mode refile.
     :ensure t
     :config
     (which-key-mode))
+#+END_SRC
+** Multiple Cursors
+#+BEGIN_SRC emacs-lisp
+  (use-package multiple-cursors
+    :ensure t
+    :config
+    (global-set-key (kbd "C-S-c C-S-c") 'mc/edit-lines))
+#+END_SRC
+** yasnippet
+#+BEGIN_SRC emacs-lisp
+  (use-package yasnippet
+    :ensure t
+    :init
+    (yas-global-mode 1)
+    )
 #+END_SRC
 * Search and Auto-complete
 ** ido mode
@@ -871,23 +983,24 @@ Shortcut to trigger org-refile is =C-c C-w=
 
 ** Org-attach-screenshot Configuration
 *** Generate a decent filename based on buffer name.
+Commenting out for now!
 #+BEGIN_SRC emacs-lisp
-  (defun apm/generate-screenshot-dirname ()
-    (interactive)
-    (cl-assert (buffer-file-name))
-    (concat (file-name-sans-extension (buffer-file-name))
-            "_images"))
+;;  (defun apm/generate-screenshot-dirname ()
+;;    (interactive)
+;;    (cl-assert (buffer-file-name))
+;;   (concat (file-name-sans-extension (buffer-file-name))
+;;            "_images"))
 #+END_SRC
 
 Currently working on mac using =screencapture=. Not setup for Windows.
 #+BEGIN_SRC emacs-lisp
-  (cond
-   ((string-equal system-type "darwin") ; MacOS
-  (use-package org-attach-screenshot
-    :init
-    (progn
-      (setq org-attach-screenshot-command-line "screencapture -i %f")
-      (setq org-attach-screenshot-dirfunction 'apm/generate-screenshot-dirname)))))
+;;  (cond
+;;   ((string-equal system-type "darwin") ; MacOS
+;;  (use-package org-attach-screenshot
+;;    :init
+;;    (progn
+;;      (setq org-attach-screenshot-command-line "screencapture -i %f")
+;;      (setq org-attach-screenshot-dirfunction 'apm/generate-screenshot-dirname)))))
 #+END_SRC
 ** Org-mode custom UI adjustments
 #+BEGIN_SRC emacs-lisp
@@ -968,50 +1081,65 @@ Use Python3
 
 *** elpy
 
+#+BEGIN_SRC emacs-lisp
+  (use-package elpy
+    :ensure t)
+#+END_SRC
+
 Enable =elpy=
 #+BEGIN_SRC emacs-lisp
-;(elpy-enable)
+  (elpy-enable)
 #+END_SRC
 
+*** Flycheck
 Use =flycheck=
 #+BEGIN_SRC emacs-lisp
-;(add-hook 'elpy-mode-hook 'flycheck-mode)
+  (use-package flycheck
+    :ensure t)
+  (add-hook 'elpy-mode-hook 'flycheck-mode)
 #+END_SRC
 
+
+*** PEP8
 PEP8 on Save.
 #+BEGIN_SRC emacs-lisp
 ;(require 'py-autopep8)
 ;(add-hook 'elpy-mode-hook 'py-autopep8-enable-on-save)
 #+END_SRC
 
+*** JEDI
+
 Use Jedi for autocompletion
 #+BEGIN_SRC emacs-lisp
 ;(setq elpy-rpc-backend "jedi")
 #+END_SRC
-*** anaconda
+
+*** COMMENT anaconda
 
 Type =C-M-i= to start a completion.
 
+Commented out.
+
 Enable company-anaconda
 #+BEGIN_SRC emacs-lisp
-(use-package company-anaconda
-  :after (anaconda-mode company)
-  :config (add-to-list 'company-backends 'company-anaconda))
+;(use-package company-anaconda
+;  :after (anaconda-mode company)
+;  :config (add-to-list 'company-backends 'company-anaconda))
 #+END_SRC
 
 Enable anaconda-mode
 #+BEGIN_SRC emacs-lisp
-(add-hook 'python-mode-hook 'anaconda-mode)
+;(add-hook 'python-mode-hook 'anaconda-mode)
 #+END_SRC
 
 Enable anaconda-eldoc-mode - when point is between the paranthesis of a function call, its parameters are shown in the echo area.
 #+BEGIN_SRC emacs-lisp
-(add-hook 'python-mode-hook 'anaconda-eldoc-mode)
+;(add-hook 'python-mode-hook 'anaconda-eldoc-mode)
 #+END_SRC
 
 If you need to reset the interpreter when using python in docker, run the following
 #+BEGIN_EXAMPLE emacs-lisp
-(setq python-shell-interpreter "/usr/local/bin/python")
+;(setq python-shell-interpreter "/usr/local/bin/python")
 #+END_EXAMPLE
 ** Web
 *** Common
@@ -1096,30 +1224,8 @@ From [[https://stackoverflow.com/questions/39861580/emacs-program-to-collapse-js
 
 ** TRAMP mode
 #+BEGIN_SRC emacs-lisp
-(setq tramp-default-method "ssh")
+  (setq tramp-default-method "ssh")
 #+END_SRC
-
-Setup gcloud compute ssh through tramp. [[https://gist.github.com/jackrusher/36c80a2fd6a8fe8ddf46bc7e408ae1f9][link]].
-
-#+BEGIN_SRC emacs-lisp
-  (add-to-list 'tramp-methods
-    '("gcssh"
-      (tramp-login-program        "gcloud compute ssh")
-      (tramp-login-args           (("%h")
-                                   ("--project-id" "pso-learning"))
-      (tramp-async-args           (("-q")))
-      (tramp-remote-shell         "/bin/sh")
-      (tramp-remote-shell-args    ("-c"))
-      (tramp-gw-args              (("-o" "GlobalKnownHostsFile=/dev/null")
-                                   ("-o" "UserKnownHostsFile=/dev/null")
-                                   ("-o" "StrictHostKeyChecking=no")))
-      (tramp-default-port         22))))
-
-  ;; ... after which it's as easy as:
-  ;;
-  ;; C-x C-f /gcssh:compute-instance:/path/to/filename.clj
-#+END_SRC
-
 ** Shell mode
 *** Default shell to Bash
 #+BEGIN_SRC emacs-lisp
