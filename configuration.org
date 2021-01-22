@@ -15,7 +15,6 @@ This includes package management and other sanity preserving settings.
 ** Load paths defined by package.el.
 We probably don't need this. An experiment for another day.
 #+BEGIN_SRC emacs-lisp
-(package-initialize)
 (add-to-list 'load-path "~/.emacs.d/lisp/")
 (add-to-list 'exec-path "/Library/Frameworks/Python.framework/Versions/3.6/bin")
 #+END_SRC
@@ -75,7 +74,16 @@ Keep the point at the same position on the screen when scrolling.
 
 *** Higher GC threshold
 #+BEGIN_SRC emacs-lisp
-(setq gc-cons-threshold 20000000)
+;; Speed up initialization reducing garbage collection runs.
+(setq gc-cons-threshold (* 32 1024 1024))
+(add-hook 'after-init-hook (lambda () (setq gc-cons-threshold(* 4 1024 1024))))
+#+END_SRC
+*** Collect Garbage when not used.
+#+BEGIN_SRC emacs-lisp
+  (add-function :after after-focus-change-function
+                (lambda ()
+                  (unless (frame-focus-state)
+                    (garbage-collect))))
 #+END_SRC
 *** Delete Trailing Whitespace every time a buffer is saved.
 #+BEGIN_SRC emacs-lisp
@@ -97,15 +105,18 @@ If some text is selected, and you type some text, delete the selected text and s
 #+END_SRC
 *** Display Line numbers in fringe.
 #+BEGIN_SRC emacs-lisp
-;(global-display-line-numbers-mode) ;Commenting out as it slows down buffer refresh and doesn't play nicely with some modes.
+(global-display-line-numbers-mode) ;This slows down buffer refresh and doesn't play nicely with some modes.
 #+END_SRC
 *** Set PATH when on OSX or Linux
 #+BEGIN_SRC emacs-lisp
-;;(use-package exec-path-from-shell
-;;:ensure t
-;;:config (
-;;  (when (memq window-system '(mac ns x))
-;;    (exec-path-from-shell-initialize))))
+  (use-package exec-path-from-shell
+    :ensure t
+    :config
+             (when (memq window-system '(mac ns x))
+               (setenv "SHELL" "/bin/zsh")
+               (exec-path-from-shell-initialize)
+               (exec-path-from-shell-copy-envs
+                '("PATH"))))
 #+END_SRC
 *** Use async processes wherever possible
 #+BEGIN_SRC emacs-lisp
@@ -427,17 +438,18 @@ Highlights the cursor when switching buffers
 #+END_SRC
 ** All-The-Icons and Fonts
 #+BEGIN_SRC emacs-lisp
-;; https://github.com/domtronn/all-the-icons.el/issues/120#issuecomment-565438080
-(defun apm/font-installed-p (font-name)
-  "Check if font with FONT-NAME is available."
-  (if (find-font (font-spec :name font-name))
-      t
-    nil))
-(use-package all-the-icons
-  :config
-  (when (and (not (apm/font-installed-p "all-the-icons"))
-             (window-system))
-    (all-the-icons-install-fonts t)))
+  ;; https://github.com/domtronn/all-the-icons.el/issues/120#issuecomment-565438080
+  (defun apm/font-installed-p (font-name)
+    "Check if font with FONT-NAME is available."
+    (if (find-font (font-spec :name font-name))
+        t
+      nil))
+  (use-package all-the-icons
+    :ensure t
+    :config
+    (when (and (not (apm/font-installed-p "all-the-icons"))
+               (window-system))
+      (all-the-icons-install-fonts t)))
 #+END_SRC
 ** Treemacs
 
@@ -494,7 +506,7 @@ Highlights the cursor when switching buffers
       ;; The default width and height of the icons is 22 pixels. If you are
       ;; using a Hi-DPI display, uncomment this to double the icon size.
       ;;(treemacs-resize-icons 44)
-      (treemacs-resize-icons 10)
+      (treemacs-resize-icons 18)
 
 
       (treemacs-follow-mode t)
@@ -673,9 +685,7 @@ Beautiful icons
 Easy template completion (Expanding <s to #+BEGIN_SRC does not work in org 9.2.1 without this.)
 
 #+begin_src emacs-lisp
-;(use-package org-tempo
-;:ensure t
-;:after org)
+  (require 'org-tempo) ;; Part of the org module
 #+end_src
 
 ** Org-Mode Todo and Agenda settings
@@ -1221,11 +1231,6 @@ From [[https://stackoverflow.com/questions/39861580/emacs-program-to-collapse-js
 :config
 (add-to-list 'auto-mode-alist '("\\.yaml\\'" . yaml-mode)))
 #+END_SRC
-
-** TRAMP mode
-#+BEGIN_SRC emacs-lisp
-  (setq tramp-default-method "ssh")
-#+END_SRC
 ** Shell mode
 *** Default shell to Bash
 #+BEGIN_SRC emacs-lisp
@@ -1324,6 +1329,49 @@ From [[https://stackoverflow.com/questions/39861580/emacs-program-to-collapse-js
         ;; the psql prompt breaking the alignment of query results.)
         (comint-send-string proc "\\set ECHO queries\n"))))
 #+end_src
+* TRAMP settings
+** Set default method
+#+BEGIN_SRC emacs-lisp
+  (setq tramp-default-method "ssh")
+#+END_SRC
+
+** Docker Support
+#+begin_src emacs-lisp
+;; Open files in Docker containers like so: /docker:drunk_bardeen:/etc/passwd
+(push
+ (cons
+  "docker"
+  '((tramp-login-program "docker")
+    (tramp-login-args (("exec" "-it") ("%h") ("/bin/bash")))
+    (tramp-remote-shell "/bin/sh")
+    (tramp-remote-shell-args ("-i") ("-c"))))
+ tramp-methods)
+
+(defadvice tramp-completion-handle-file-name-all-completions
+  (around dotemacs-completion-docker activate)
+  "(tramp-completion-handle-file-name-all-completions \"\" \"/docker:\" returns
+    a list of active Docker container names, followed by colons."
+  (if (equal (ad-get-arg 1) "/docker:")
+      (let* ((dockernames-raw (shell-command-to-string "docker ps | awk '$NF != \"NAMES\" { print $NF \":\" }'"))
+             (dockernames (cl-remove-if-not
+                           #'(lambda (dockerline) (string-match ":$" dockerline))
+                           (split-string dockernames-raw "\n"))))
+        (setq ad-return-value dockernames))
+    ad-do-it))
+#+end_src
+** GCP Cloud Shell
+#+begin_src emacs-lisp
+;; Open files in GCP Cloud Shell like so: /cloudshell:/etc/passwd
+(push
+ (cons
+  "cloudshell"
+  '((tramp-login-program "gcloud")
+    (tramp-login-args (("alpha" "cloud-shell" "ssh")))
+    (tramp-remote-shell "/bin/sh")
+    (tramp-remote-shell-args ("-i") ("-c"))))
+ tramp-methods)
+#+end_src
+
 * Docker Setup - Commented.
 ** Machine specific configuration
 #+BEGIN_SRC emacs-lisp
@@ -1417,6 +1465,14 @@ Use an org file for feed URLs. This section must be run *AFTER* the org-mode sec
 #+BEGIN_SRC emacs-lisp
 (global-set-key (kbd "<f5>") 'projectile-compile-project)
 #+END_SRC
+* Kubernetes
+** Install Chris Barrett's package
+Run =M-x kubernetes-overview= to start.
+#+begin_src emacs-lisp
+  (use-package kubernetes
+    :ensure t
+    :commands (kubernetes-overview))
+#+end_src
 * Config Management
 ** Visiting the configuration file.
 #+BEGIN_SRC emacs-lisp
